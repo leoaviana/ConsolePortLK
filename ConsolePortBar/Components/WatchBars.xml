@@ -1,0 +1,108 @@
+<Ui xmlns="http://www.blizzard.com/wow/ui/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.blizzard.com/wow/ui/
+..\FrameXML\UI.xsd">
+	<Script file="WatchBarMixins.lua"/>
+
+	<Frame name="CP_StatusTrackingBarTemplate" frameStrata="MEDIUM" enableMouse="true" hidden="true" virtual="true">
+		<Size x="804" y="11"/>
+		<Frames>
+			<StatusBar parentKey="StatusBar" frameStrata="LOW" drawLayer="BORDER" inherits="AnimatedStatusBarTemplate">
+				<Size x="804" y="10"/>
+				<Anchors>
+					<Anchor point="RIGHT" x="0" y="0"/>
+				</Anchors>
+				<BarTexture parentKey="BarTexture" file="Interface\TargetingFrame\UI-StatusBar"/>
+				<BarColor r="0.58" g="0.0" b="0.55"/>
+				<Layers>
+					<Layer level="BACKGROUND">
+						<Texture parentKey="Background">
+							<Color r="0.0" g="0.0" b="0.0" a="0.9"/>
+						</Texture>
+					</Layer>
+					<Layer level="BACKGROUND" textureSubLevel="1">
+						<Texture parentKey="Underlay" hidden="true" file="Interface\TargetingFrame\UI-StatusBar">
+							<Color r=".502" g=".443" b=".278" />
+						</Texture>
+					</Layer>
+					<Layer level="ARTWORK" textureSubLevel="-1">
+						<Texture parentKey="Overlay" hidden="true" atlas="XPBarAnim-OrangeGain" alphaMode="ADD">
+							<Color r=".901" g=".8" b=".601" />
+						</Texture>
+					</Layer>
+				</Layers>
+			</StatusBar>
+			<Frame parentKey="OverlayFrame" frameStrata="HIGH" setAllPoints="true">
+				<Layers>
+					<Layer level="ARTWORK" textureSubLevel="5">
+						<FontString parentKey="Text" inherits="TextStatusBarText" hidden="true">
+							<Anchors>
+								<Anchor point="CENTER" relativeKey="$parent.StatusBar" relativePoint="CENTER" x="0" y="1"/>
+							</Anchors>
+						</FontString>
+					</Layer>
+				</Layers>
+			</Frame>
+		</Frames>
+	</Frame>
+
+	<Frame name="CP_ReputationStatusBarTemplate" inherits="CP_StatusTrackingBarTemplate" mixin="CPReputationBarMixin" virtual="true">
+		<Scripts>
+			<OnLoad>
+				CPAPI.Mixin(self.StatusBar, CPAnimatedStatusBarMixin)
+				CPAPI.Mixin(self, CPReputationBarMixin)
+				self:OnLoad()
+				self:SetScript("OnEvent", self.OnEvent)
+				self:SetScript("OnShow", self.OnShow)
+				self:SetScript("OnEnter", self.OnEnter)
+				self:SetScript("OnLeave", self.OnLeave) 
+			</OnLoad>
+		</Scripts>
+	</Frame>
+
+	<Frame name="CP_ExpStatusBarTemplate" useParentLevel="true" inherits="CP_StatusTrackingBarTemplate" hidden="true" mixin="CPExpBarMixin" virtual="true">
+		<Size x="804" y="11"/>
+		<Layers>
+			<Layer level="ARTWORK" textureSubLevel="-1">
+				<Texture parentKey="ExhaustionLevelFillBar" file="Interface\AddOns\ConsolePortBar\Textures\XPBar">
+					<Size x="0" y="10"/>
+					<Anchors>
+						<Anchor point="TOPLEFT"/>
+					</Anchors>
+					<Color r="1.0" g="1.0" b="1.0" a="1.0"/>
+				</Texture>
+			</Layer>
+		</Layers>
+		<Frames>
+			<Button parentKey="ExhaustionTick" hidden="true" frameStrata="HIGH" mixin="CPExhaustionTickMixin">
+				<Size x="32" y="32"/>
+				<Anchors>
+					<Anchor point="CENTER" relativeKey="$parent.ExhaustionLevelFillBar" relativePoint="RIGHT"/>
+				</Anchors>
+				<NormalTexture parentKey="Normal" file="Interface\MainMenuBar\UI-ExhaustionTickNormal"/>
+				<HighlightTexture parentKey="Highlight" file="Interface\MainMenuBar\UI-ExhaustionTickHighlight" alphaMode="ADD"/>
+				<Scripts>
+					<OnLoad>
+						CPAPI.Mixin(self, CPExhaustionTickMixin)
+						self:OnLoad()
+						self:SetScript("OnEvent", self.OnEvent) 
+						self:SetScript("OnEnter", self.ExhaustionToolTipText)
+						self:SetScript("OnLeave", GameTooltip_Hide)  						
+					</OnLoad>
+				</Scripts>
+			</Button>
+		</Frames>
+		<Scripts>
+			<OnLoad>
+				CPAPI.Mixin(self.StatusBar, CPAnimatedStatusBarMixin)
+				CPAPI.Mixin(self, CPExpBarMixin)
+				self:OnLoad()
+				self:SetScript("OnEvent", self.OnEvent)
+				self:SetScript("OnShow", self.OnShow)
+				self:SetScript("OnEnter", self.OnEnter)
+				self:SetScript("OnLeave", self.OnLeave) 
+				self:SetScript("OnUpdate", self.OnUpdate)   
+			</OnLoad>
+		</Scripts>
+	</Frame>
+
+	<Script file="WatchBars.lua"/>
+</Ui>
