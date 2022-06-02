@@ -78,7 +78,8 @@ function Helper:OnShow()
 			self:Hide()
 			return
 		end
-		self.Icon:SetTexture(texture)
+		--self.Icon:SetTexture(texture)
+		SetPortraitToTexture(self.Icon, texture)
 		self.Name:SetText(name)
 		self.Desc:SetText(customDesc or db.TUTORIAL.HINTS.HELPER_ACTIONBAR)
 		self:UpdateWidth()

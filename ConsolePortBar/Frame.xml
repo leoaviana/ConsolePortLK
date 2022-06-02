@@ -22,7 +22,7 @@
 				</Anchors>
 				<Layers>
 					<Layer level="OVERLAY">
-						<Texture parentKey="SingleBarLarge" hidden="true">
+						<Texture name="$parentSingleBarLarge" parentKey="SingleBarLarge" hidden="true">
 							<Size x="804" y="14"/>
 							<Anchors>
 								<Anchor point="CENTER"/>
@@ -31,10 +31,10 @@
 						<Texture parentKey="SingleBarLargeUpper" hidden="true">
 							<Size x="804" y="14"/>
 							<Anchors>
-								<Anchor point="TOP" relativeKey="$parent.SingleBarLarge" y="9"/>
+								<Anchor point="TOP" relativeTo="$parentSingleBarLarge" y="9"/>
 							</Anchors>
 						</Texture>
-						<Texture parentKey="SingleBarSmall" hidden="true">
+						<Texture name="$parentSingleBarSmall" parentKey="SingleBarSmall" hidden="true">
 							<Size x="550" y="14"/>
 							<Anchors>
 								<Anchor point="CENTER"/>
@@ -43,7 +43,7 @@
 						<Texture parentKey="SingleBarSmallUpper" hidden="true">
 							<Size x="550" y="14"/>
 							<Anchors>
-								<Anchor point="TOP" relativeKey="$parent.SingleBarSmall" y="9"/>
+								<Anchor point="TOP" relativeTo="$parentSingleBarSmall" y="9"/>
 							</Anchors>
 						</Texture> 
 					</Layer>
@@ -70,7 +70,7 @@
 			<Button name="$parentShowHideButtons" parentKey="Eye" inherits="SecureActionButtonTemplate">
 				<Size x="40" y="40"/>
 				<Anchors>
-					<Anchor point="RIGHT" relativeKey="$parent.Menu" relativePoint="LEFT" x="-4" y="0"/>
+					<Anchor point="RIGHT" relativeTo="$parentShowHideMenu" relativePoint="LEFT" x="-4" y="0"/>
 				</Anchors>
 				<NormalTexture parentKey="Normal" file="Interface\AddOns\ConsolePortBar\Textures\Blank64"/>
 				<HighlightTexture parentKey="Highlight" file="Interface\AddOns\ConsolePortBar\Textures\Button\BigHilite" alphaMode="ADD"/>
@@ -88,7 +88,7 @@
 			<Button name="$parentShowHideBags" parentKey="Bag" inherits="SecureActionButtonTemplate">
 				<Size x="40" y="40"/>
 				<Anchors>
-					<Anchor point="LEFT" relativeKey="$parent.Menu" relativePoint="RIGHT" x="4" y="0"/>
+					<Anchor point="LEFT" relativeTo="$parentShowHideMenu" relativePoint="RIGHT" x="4" y="0"/>
 				</Anchors>
 				<NormalTexture parentKey="Normal" file="Interface\AddOns\ConsolePortBar\Textures\Bag64"/>
 				<HighlightTexture parentKey="Highlight" file="Interface\AddOns\ConsolePortBar\Textures\Button\BigHilite" alphaMode="ADD"/>

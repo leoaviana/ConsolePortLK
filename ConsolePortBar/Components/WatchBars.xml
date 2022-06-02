@@ -5,7 +5,7 @@
 	<Frame name="CP_StatusTrackingBarTemplate" frameStrata="MEDIUM" enableMouse="true" hidden="true" virtual="true">
 		<Size x="804" y="11"/>
 		<Frames>
-			<StatusBar parentKey="StatusBar" frameStrata="LOW" drawLayer="BORDER" inherits="AnimatedStatusBarTemplate">
+			<StatusBar name="$parentStatusBar" parentKey="StatusBar" frameStrata="LOW" drawLayer="BORDER" inherits="AnimatedStatusBarTemplate">
 				<Size x="804" y="10"/>
 				<Anchors>
 					<Anchor point="RIGHT" x="0" y="0"/>
@@ -35,7 +35,7 @@
 					<Layer level="ARTWORK" textureSubLevel="5">
 						<FontString parentKey="Text" inherits="TextStatusBarText" hidden="true">
 							<Anchors>
-								<Anchor point="CENTER" relativeKey="$parent.StatusBar" relativePoint="CENTER" x="0" y="1"/>
+								<Anchor point="CENTER" relativeTo="$parentStatusBar" relativePoint="CENTER" x="0" y="1"/>
 							</Anchors>
 						</FontString>
 					</Layer>
@@ -62,7 +62,7 @@
 		<Size x="804" y="11"/>
 		<Layers>
 			<Layer level="ARTWORK" textureSubLevel="-1">
-				<Texture parentKey="ExhaustionLevelFillBar" file="Interface\AddOns\ConsolePortBar\Textures\XPBar">
+				<Texture name="$parentExhaustionLevelFillBar" parentKey="ExhaustionLevelFillBar" file="Interface\AddOns\ConsolePortBar\Textures\XPBar">
 					<Size x="0" y="10"/>
 					<Anchors>
 						<Anchor point="TOPLEFT"/>
@@ -75,7 +75,7 @@
 			<Button parentKey="ExhaustionTick" hidden="true" frameStrata="HIGH" mixin="CPExhaustionTickMixin">
 				<Size x="32" y="32"/>
 				<Anchors>
-					<Anchor point="CENTER" relativeKey="$parent.ExhaustionLevelFillBar" relativePoint="RIGHT"/>
+					<Anchor point="CENTER" relativeTo="$parentExhaustionLevelFillBar" relativePoint="RIGHT"/>
 				</Anchors>
 				<NormalTexture parentKey="Normal" file="Interface\MainMenuBar\UI-ExhaustionTickNormal"/>
 				<HighlightTexture parentKey="Highlight" file="Interface\MainMenuBar\UI-ExhaustionTickHighlight" alphaMode="ADD"/>

@@ -46,7 +46,8 @@ function ItemMenu:SetItem(bagID, slotID)
 
 	local count = self:GetCount()
 	self.Count:SetText(count > 1 and ('x'..count) or '')
-	self.Icon:SetTexture(self:GetItemIcon())
+	--self.Icon:SetTexture(self:GetItemIcon())
+	SetPortraitToTexture(self.Icon, self:GetItemIcon());
 	self.Name:SetText(self:GetItemName())
 	self.Name:SetTextColor(self:GetItemQualityColor().color:GetRGB())
 
@@ -289,7 +290,8 @@ end
 function ItemMenuButtonMixin:SetCommand(text, command, data)
 	self.data = data
 	self.command = command
-	self.Icon:SetTexture(COMMAND_OPT_ICON[command] or COMMAND_OPT_ICON.Default)
+	--self.Icon:SetTexture(COMMAND_OPT_ICON[command] or COMMAND_OPT_ICON.Default)
+	SetPortraitToTexture(self.Icon, COMMAND_OPT_ICON[command] or COMMAND_OPT_ICON.Default)
 	self:SetText(text)
 end
 

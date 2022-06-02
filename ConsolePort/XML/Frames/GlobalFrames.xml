@@ -85,7 +85,7 @@
 			<Layer level="OVERLAY">
 				<FontString parentKey="Count" inherits="GameFontNormal">
 					<Anchors>
-						<Anchor point="BOTTOMRIGHT" relativeKey="$parent.Icon" x="4" y="4"/>
+						<Anchor point="BOTTOMRIGHT" relativeTo="$parent.Icon" x="4" y="4"/>
 					</Anchors>
 				</FontString>
 			</Layer>

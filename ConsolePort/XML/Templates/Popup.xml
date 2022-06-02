@@ -43,7 +43,7 @@
 		</Frames>
 		<Layers>
 			<Layer level="OVERLAY">
-				<Texture parentKey="Border" file="Interface\AddOns\ConsolePort\Textures\Button\Normal">
+				<Texture name="$parentBorder" parentKey="Border" file="Interface\AddOns\ConsolePort\Textures\Button\Normal">
 					<Size x="64" y="64"/>
 					<Anchors>
 						<Anchor point="TOPLEFT" x="16" y="-16"/>
@@ -51,29 +51,29 @@
 				</Texture>
 			</Layer>
 			<Layer level="ARTWORK">
-				<Texture parentKey="Icon">
+				<Texture name="$parentIcon" parentKey="Icon">
 					<Size x="64" y="64"/>
 					<Anchors>
-						<Anchor point="CENTER" relativeKey="$parent.Border"/>
+						<Anchor point="CENTER" relativeTo="$parentBorder"/>
 					</Anchors>
 				</Texture>
-				<FontString parentKey="Name" inherits="GameFontNormalLarge" justifyH="LEFT">
+				<FontString name="$parentName" parentKey="Name" inherits="GameFontNormalLarge" justifyH="LEFT">
 					<Size x="300" y="22"/>
 					<Color r="1" g="0.82" b="0" a="1"/>
 					<Anchors>
-						<Anchor point="TOPLEFT" relativeKey="$parent.Border" relativePoint="TOPRIGHT" x="8" y="-4"/>
+						<Anchor point="TOPLEFT" relativeTo="$parentBorder" relativePoint="TOPRIGHT" x="8" y="-4"/>
 					</Anchors>
 				</FontString>
-				<FontString parentKey="Desc" inherits="DialogButtonHighlightText" justifyH="LEFT">
+				<FontString name="$parentDesc" parentKey="Desc" inherits="DialogButtonHighlightText" justifyH="LEFT">
 					<Anchors>
-						<Anchor point="TOPLEFT" relativeKey="$parent.Name" relativePoint="BOTTOMLEFT"/>
+						<Anchor point="TOPLEFT" relativeTo="$parentName" relativePoint="BOTTOMLEFT"/>
 					</Anchors>
 				</FontString>
 			</Layer>
 		</Layers>
 		<Scripts>
 			<OnLoad>
-				--self.Icon:SetMask([[Interface\AddOns\ConsolePort\Textures\Button\Mask]]);
+				--self.Icon:SetMask([[Interface\AddOns\ConsolePort\Textures\Button\Mask]]); 
 			</OnLoad>
 		</Scripts>
 	</Frame>
