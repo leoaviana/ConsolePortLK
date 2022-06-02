@@ -13,9 +13,8 @@ function CPAPI:GetPlayerCastingInfo()
 	return CastingInfo()
 end
 
-local classes = {["WARRIOR"]=1, ["PALADIN"]=2, ["HUNTER"]=3, ["ROGUE"]=4, ["PRIEST"]=5, ["DEATHKNIGHT"]=6,["SHAMAN"]=7,["MAGE"]=8,["WARLOCK"]=9,["DRUID"]=10}
-
-function CPAPI:GetSpecialization(...)
+function CPAPI.GetSpecialization()
+	local classes = {["WARRIOR"]=1, ["PALADIN"]=2, ["HUNTER"]=3, ["ROGUE"]=4, ["PRIEST"]=5, ["DEATHKNIGHT"]=6,["SHAMAN"]=7,["MAGE"]=8,["WARLOCK"]=9,["DRUID"]=10}
 	local vln, vlfn = UnitClass("player");  
 	return classes[vlfn] or 1;
 end
@@ -46,7 +45,7 @@ local function CP_GetTalentSpecInfo(isInspect)
 	return specIdx, specName, specIcon
 end
 
-function CPAPI:GetSpecializationInfo(specID)
+function CPAPI.GetSpecializationInfo(specID)
 	_, specName, _ = CP_GetTalentSpecInfo()
 	return specID, specName;
 end

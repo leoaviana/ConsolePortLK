@@ -110,7 +110,7 @@ function Stance:UpdateButtons()
 		button:SetID(i)
 		button:SetScript('OnEnter', nil) 
 
-		CPAPI.Mixin(button, ConsolePortActionButtonMixin)
+		Mixin(button, ConsolePortActionButtonMixin)
  
 		button.cooldown = _G[name..'Cooldown'];
 		button.Shine = _G[name..'Shine']
@@ -134,7 +134,7 @@ function Stance:UpdateButtons()
 		button.CheckedTexture:SetTexture('Interface\\AddOns\\ConsolePort\\Textures\\Button\\Hilite')
 		button.CheckedTexture:SetAllPoints()
  
-		CPAPI.Mixin(button, Button)
+		Mixin(button, Button)
 
 		
 		button.HotkeyIcon = button:CreateTexture(nil, 'BORDER')

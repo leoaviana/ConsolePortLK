@@ -48,7 +48,7 @@ ConsolePort:AddPlugin('Blizzard_MapCanvas', function(self)
 		node:SetSize(4, 4)
 		node:SetPoint('CENTER')
 		node.noAnimation = false
-		CPAPI.Mixin(node, NodeMixin)
+		Mixin(node, NodeMixin)
 		nodes[index] = node
 		pins[pin] = true
 		pin.includeChildren = true

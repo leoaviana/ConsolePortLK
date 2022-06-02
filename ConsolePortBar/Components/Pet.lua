@@ -129,7 +129,7 @@ do
 		button:SetScript('OnEnter', nil)
 		--button.HotKey:SetAlpha(0)
 
-		CPAPI.Mixin(button, ConsolePortActionButtonMixin)
+		Mixin(button, ConsolePortActionButtonMixin)
 
 		button.icon = _G[name..'Icon']
 		button.AutoCastable = _G[name..'AutoCastable']
@@ -166,7 +166,7 @@ do
 --		button.cooldown:SetSwipeTexture('Interface\\AddOns\\ConsolePort\\Textures\\Button\\Normal')
 --		button.cooldown:SetBlingTexture('Interface\\AddOns\\ConsolePort\\Textures\\Button\\Bling')
 
-		CPAPI.Mixin(button, Button)
+		Mixin(button, Button)
 
 		if i > 2 then
 			button:SetPoint('CENTER', ptx, -pty -8)

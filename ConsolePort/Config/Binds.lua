@@ -168,7 +168,7 @@ function BindingMixin:CreateButton(name, parent, isScrollButton, config)
 		BindingMixin["CTRL-SHIFT-"] = "|T" .. ICONS.CP_M1 .. ":24:24:22:0|t" .. BindingMixin["CTRL-"]
 	end
 
-	CPAPI.Mixin(button, BindingMixin)
+	Mixin(button, BindingMixin)
 	button.CreateButton = nil
 
 	return button
@@ -233,7 +233,7 @@ function SwapperMixin:CreateButton(name, parent, config)
 	config.omitHeader = nil
 
 	local button = BindingMixin:CreateButton(name, parent, false, config)
-	CPAPI.Mixin(button, SwapperMixin)
+	Mixin(button, SwapperMixin)
 	button:SetScript("OnClick", SwapperMixin.OnClick)
 	return button
 end
@@ -325,7 +325,7 @@ local function RefreshHeaderList(self)
 			db.Atlas.SetFutureButtonStyle(button)
 			button.Label:SetJustifyH("LEFT")
 
-			CPAPI.Mixin(button, HeaderMixin)
+			Mixin(button, HeaderMixin)
 			self:AddButton(button)
 		end
 		if colors[category] then
@@ -775,7 +775,7 @@ function WindowMixin:Save()
 		newBindingSet = nil
 
 		ConsolePortBindingSet = ConsolePortBindingSet or {}
-		ConsolePortBindingSet[CP_GetSpecialization()] = db.Bindings
+		ConsolePortBindingSet[CPAPI.GetSpecialization()] = db.Bindings
 		self:Reload()
 	end
 	-- callback for retrieving new bindings
@@ -869,7 +869,7 @@ db.PANELS[#db.PANELS + 1] = {name = "Binds", header = TUTORIAL.HEADER, mixin = W
 	self.BindCatcher.Cover:Hide()
 	self.BindCatcher.hasPriority = true
 
-	CPAPI.Mixin(self.BindCatcher, CatcherMixin)
+	Mixin(self.BindCatcher, CatcherMixin)
 
 ---------------------------------------------------------------
 
@@ -1014,7 +1014,7 @@ db.PANELS[#db.PANELS + 1] = {name = "Binds", header = TUTORIAL.HEADER, mixin = W
 		self:GetParent():OnShow()
 	end
 
-	CPAPI.Mixin(self.Display, self.Display)
+	Mixin(self.Display, self.Display)
 
 	self.Display:SetPoint("BOTTOM", 0, 20)
 	self.Display:SetSize(161.6, 47.2)
@@ -1083,7 +1083,7 @@ db.PANELS[#db.PANELS + 1] = {name = "Binds", header = TUTORIAL.HEADER, mixin = W
 
 			if not custom or config.mouseBindings[buttonName] then
 				button.name = triggers[buttonName] or buttonName
-				CPAPI.Mixin(button, LayoutMixin)
+				Mixin(button, LayoutMixin)
 				self.Overlay.Buttons[#self.Overlay.Buttons + 1] = button
 			end
 		end
@@ -1108,7 +1108,7 @@ db.PANELS[#db.PANELS + 1] = {name = "Binds", header = TUTORIAL.HEADER, mixin = W
 	rebindFrame:SetPoint("TOPLEFT", 86, -32)
 	rebindFrame:SetPoint("BOTTOMRIGHT", self, "BOTTOM", -116, 84)
 
-	CPAPI.Mixin(rebindFrame, RebindMixin)
+	Mixin(rebindFrame, RebindMixin)
 
 	rebindFrame.HeaderScroll = db.Atlas.GetScrollFrame("$parentHeaderScrollFrame", self, {
 		childKey = "Headers",
@@ -1204,7 +1204,7 @@ db.PANELS[#db.PANELS + 1] = {name = "Binds", header = TUTORIAL.HEADER, mixin = W
 			shortcut.Button = button
 			shortcut.name = name
 
-			CPAPI.Mixin(shortcut, ShortcutMixin)
+			Mixin(shortcut, ShortcutMixin)
 
 			rebindFrame.ShortcutScroll:AddButton(shortcut, 7)
 		end
@@ -1212,7 +1212,7 @@ db.PANELS[#db.PANELS + 1] = {name = "Binds", header = TUTORIAL.HEADER, mixin = W
 		button.secure = _G[name..mod]
 		button.secure.conf = button
 
-		CPAPI.Mixin(button, ButtonMixin)
+		Mixin(button, ButtonMixin)
 
 		if not window.Buttons[name] then
 			window.Buttons[name] = {}

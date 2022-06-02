@@ -117,7 +117,7 @@ function Totem:UpdateButtons()
 		button:HookScript('OnEnter', function(self) MultiCastSlotButton_OnEnter(backButton) end)
 		button:HookScript('OnLeave', function(self) MultiCastSlotButton_OnLeave(backButton) end)
 
-		CPAPI.Mixin(button, ConsolePortActionButtonMixin)
+		Mixin(button, ConsolePortActionButtonMixin)
 		
 		button.realbutton = _G["MultiCastActionButton"..i] 
 		button.cooldown = _G[name..'Cooldown'];
@@ -142,7 +142,7 @@ function Totem:UpdateButtons()
 		button.CheckedTexture:SetTexture('Interface\\AddOns\\ConsolePort\\Textures\\Button\\Hilite')
 		button.CheckedTexture:SetAllPoints()
  
-		CPAPI.Mixin(button, Button)
+		Mixin(button, Button)
 
 		
 		button.HotkeyIcon = button:CreateTexture(nil, 'BORDER')

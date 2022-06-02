@@ -373,7 +373,7 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 			button:SetPoint(unpack(point))
 			button:SetText(text)
 			button:SetScript('OnClick', OnClick)
-			CPAPI.Mixin(button, PopupMixin)
+			Mixin(button, PopupMixin)
 			button.dontHide = dontHide
 			return button
 		end
@@ -584,7 +584,7 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 			end
 		end
 
-		CPAPI.Mixin(IBFullModule, IBFullModule)
+		Mixin(IBFullModule, IBFullModule)
 
 		IBFullModule.Dude = IBFullModule:CreateTexture(nil, 'BACKGROUND', nil, 1)
 		IBFullModule.Dude:SetTexture('Interface\\TutorialFrame\\UI-TutorialFrame-QuestGiver')
@@ -621,7 +621,7 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 		IBFullModule.Recommend:SetJustifyH('LEFT')
 		IBFullModule.Recommend:SetText(TUTORIAL.CONFIG.IBFULLREC)
 
-		CPAPI.Mixin(IBFullModule.BindCatcher, Catcher)
+		Mixin(IBFullModule.BindCatcher, Catcher)
 		IBFullModule.BindCatcher:OnShow()
 
 		GetHelpButton(IBFullModule, TUTORIAL.CONFIG.IBFULLHELP)
@@ -679,7 +679,7 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 			end
 		end
 
-		CPAPI.Mixin(IBLiteModule, IBLiteModule)
+		Mixin(IBLiteModule, IBLiteModule)
 
 		IBLiteModule.Dude = IBLiteModule:CreateTexture(nil, 'BACKGROUND', nil, 1)
 		IBLiteModule.Dude:SetTexture('Interface\\TutorialFrame\\UI-TutorialFrame-LootCorpse')
@@ -690,7 +690,7 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 		IBLiteModule.BindCatcher.cvar = 'lootWith'
 		IBLiteModule.BindCatcher.formatLine = TUTORIAL.CONFIG.INTERACTASSIGNED_B
 
-		CPAPI.Mixin(IBLiteModule.BindCatcher, Catcher)
+		Mixin(IBLiteModule.BindCatcher, Catcher)
 		IBLiteModule.BindCatcher:OnShow()
 
 		GetHelpButton(IBLiteModule, TUTORIAL.CONFIG.IBLITEHELP)
@@ -871,7 +871,7 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 				end
 				tinsert(radio.parent.Set, button)
 				button:SetScript('OnClick', TriggerClick)
-				CPAPI.Mixin(button, CheckButton)
+				Mixin(button, CheckButton)
 				num = num + 1
 			end
 		end
@@ -906,7 +906,7 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 			check.set = Controls.AssistModule.Set
 			tinsert(check.set, check)
 			check:SetScript('OnClick', AssistClick)
-			CPAPI.Mixin(check, CheckButton)
+			Mixin(check, CheckButton)
 		end
 	end
 

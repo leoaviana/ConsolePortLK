@@ -411,7 +411,7 @@ function WindowMixin:AddPanel(info)
 	local id = Category:AddNew(header, bannerAtlas)
 	Container.Frames[id] = frame
 
-	CPAPI.Mixin(frame, mixin)
+	Mixin(frame, mixin)
 
 	frame.IDtag = name
 	frame.noDefault = info.noDefault
@@ -546,7 +546,7 @@ end
 function WindowMixin:Export(characterExportData, exportAs)
 	if characterExportData then
 		local _, classToken = UnitClass('player')
-		local specID, specName = CPAPI:GetSpecializationInfo(CPAPI:GetSpecialization())
+		local specID, specName = CPAPI.GetSpecializationInfo(CPAPI.GetSpecialization())
         local sharedData = ConsolePortCharacterSettings or {}
 		ConsolePortCharacterSettings = sharedData
 
@@ -592,7 +592,7 @@ function WindowMixin:Export(characterExportData, exportAs)
 	end
 end
 
-CPAPI.Mixin(Config, WindowMixin)
+Mixin(Config, WindowMixin)
 
 ---------------------------------------------------------------
 -- Creates all config panels in panel table on load.

@@ -195,7 +195,7 @@ function ConsolePort:GetBindingSet(specID)
 	-----------------------------------------------------------
 	-- Set/load binding table
 	-----------------------------------------------------------
-	local specID = specID or CPAPI:GetSpecialization() 
+	local specID = specID or CPAPI.GetSpecialization() 
 
 	-- Flag bindings loaded so the settings checkup doesn't run this part.
 	BINDINGSLOADED = true

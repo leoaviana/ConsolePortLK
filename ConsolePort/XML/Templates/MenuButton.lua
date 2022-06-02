@@ -1,6 +1,6 @@
 local _, db = ...
 ---------------------------------------------------------------
-ConsolePortMenuButtonMixin = CPAPI:CreateFromMixins(ConsolePortActionButtonMixin)
+ConsolePortMenuButtonMixin = CPAPI.CreateFromMixins(ConsolePortActionButtonMixin)
 ---------------------------------------------------------------
 
 function ConsolePortMenuButtonMixin:OnEnter()
