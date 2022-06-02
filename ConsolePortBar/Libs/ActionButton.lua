@@ -41,8 +41,7 @@ local lib = {}
 ab.libs = ab.libs or {}
 ab.libs.acb = lib
 
-local UIFrameFadeIn = db.UIFrameFadeIn
-local UIFrameFadeOut = db.UIFrameFadeOut
+local UIFrameFadeIn, UIFrameFadeOut = db.GetFaders()
 
 -- Lua functions
 local type, error, tostring, tonumber, assert, select = type, error, tostring, tonumber, assert, select
@@ -183,10 +182,6 @@ function lib:CreateButton(id, name, header, config)
 	return button
 end
 
--- Unfortunately due to my low knowledge on SecureHandlers and such, I wasn't able to fix it, i can just comment lines that are crashing the AddOn, maybe i will fix
--- in the future? idk, so.. some features are not working like dragging out a spell from the button with your mouse, I don't find this bug to be gamebreaking because
--- you can drag spells into it so i'm not really that bothered with it.
-
 function SetupSecureSnippets(button)
 	button:Execute([[States = newtable("CTRL-SHIFT-", "CTRL-", "SHIFT-", "")]]) 
 	button:SetAttribute("_custom", Custom.RunCustom)
@@ -197,20 +192,21 @@ function SetupSecureSnippets(button)
 		local _type = type  
 
 		self:SetAttribute("state", state)
+
 		local type, action = (self:GetAttribute(format("labtype-%s", state)) or "empty"), self:GetAttribute(format("labaction-%s", state))
 
-		self:SetAttribute("type", type)
+		self:SetAttribute("type", type) 
 		if type ~= "empty" and type ~= "custom" then
 			local action_field = (type == "pet") and "action" or type
-			self:SetAttribute(action_field, action)
+			self:SetAttribute(action_field, action) 
 			self:SetAttribute("action_field", action_field)
 		end
 		self:SetID((type == "action" and _type(action) == "number" and action <= 12 and action) or 0) 
-		if self:GetID() > 0 then 
-			--control:CallMethod("ButtonContentsChanged", state, type, action + ((self:GetAttribute('actionpage') - 1) * 12))
+		if self:GetID() > 0 then  
+			control:CallMethod("CallMethodFromFrame", self:GetName(), "ButtonContentsChanged", state, type, action + ((self:GetAttribute('actionpage') - 1) * 12))
 		end
 		local onStateChanged = self:GetAttribute("OnStateChanged")
-		if onStateChanged then
+		if onStateChanged then 
 			control:Run(onStateChanged, state, type, action)
 		end
 	]])
@@ -218,9 +214,9 @@ function SetupSecureSnippets(button)
 	button:SetAttribute("actionpage", 1) 
 
 	-- this function is invoked by the header when the state changes
-	button:SetAttribute("_childupdate-state", [[
-		--control:RunAttribute("UpdateState", message) -- 
+	button:SetAttribute("_childupdate-state", [[ 
 		control:RunFor(self, self:GetAttribute("UpdateState"), message) 
+        control:CallMethod("CallMethodFromFrame", self:GetName(), "UpdateAction")
 	]])
  
 	button:SetAttribute("_childupdate-actionpage", [[
@@ -228,12 +224,12 @@ function SetupSecureSnippets(button)
 		if self:GetID() > 0 then
 			local state = self:GetAttribute("state")
 			local kind, value = (self:GetAttribute(format("labtype-%s", state)) or "empty"), self:GetAttribute(format("labaction-%s", state))
-			--control:CallMethod("ButtonContentsChanged", state, kind, value + ((message - 1) * 12))
+			control:CallMethod("CallMethodFromFrame", self:GetName(), "ButtonContentsChanged", state, kind, value + ((message - 1) * 12))
 		end
 	]])
 
 	button:SetAttribute("_childupdate-hover", [[
-		--control:CallMethod("CallMethodFromFrame", self:GetName(), "Hover", message) 
+		control:CallMethod("CallMethodFromFrame", self:GetName(), "Hover", message) 
 	]])
 
 	button:SetAttribute("_onenter", [[
@@ -247,11 +243,12 @@ function SetupSecureSnippets(button)
 	-- secure PickupButton(self, kind, value, ...)
 	-- utility function to place a object on the cursor
 	button:SetAttribute("PickupButton", [[
-		local kind, value = ...
+		local kind, value = ...  
+		
 		if kind == "empty" then
 			return "clear"
 		elseif kind == "action" or kind == "pet" then
-			local actionType = (kind == "pet") and "petaction" or kind
+			local actionType = (kind == "pet") and "petaction" or kind 
 			return actionType, value
 		elseif kind == "spell" or kind == "item" or kind == "macro" then
 			return "clear", kind, value
@@ -261,10 +258,11 @@ function SetupSecureSnippets(button)
 		end
 	]])
 
-	button:SetAttribute("OnDragStart", [[
+	button:SetAttribute("OnDragStart", [[ 
 		if (self:GetAttribute("buttonlock") and not IsModifiedClick("PICKUPACTION")) or self:GetAttribute("disableDragNDrop") then return false end
 		local state = self:GetAttribute("state")
 		local type = self:GetAttribute("type")
+
 		-- if the button is empty, we can't drag anything off it
 		if type == "empty" or type == "custom" then
 			return false
@@ -280,16 +278,17 @@ function SetupSecureSnippets(button)
 			-- update internal state
 			control:RunFor(self, self:GetAttribute("UpdateState"), state)
 			-- send a notification to the insecure code
-			--control:CallMethod("ButtonContentsChanged", state, "empty", nil)
+			control:CallMethod("CallMethodFromFrame", self:GetName(), "ButtonContentsChanged", state, "empty", nil)
 		end			
 		if self:GetID() > 0 then -- cp stuff
 			action = action + ((self:GetAttribute('actionpage') - 1) * 12)
 		end
+
 		-- return the button contents for pickup
 	 	return control:RunFor(self, self:GetAttribute("PickupButton"), type, action)
 	]])
 
-	button:SetAttribute("OnReceiveDrag", [[
+	button:SetAttribute("OnReceiveDrag", [[ 
 		if self:GetAttribute("disableDragNDrop") then return false end
 		local kind, value, subtype, extra = ...
 		if not kind or not value then return false end
@@ -324,11 +323,11 @@ function SetupSecureSnippets(button)
 			-- update internal state
 			control:RunFor(self, self:GetAttribute("UpdateState"), state)
 			-- send a notification to the insecure code
-			--control:CallMethod("ButtonContentsChanged", state, kind, value) -- for sm reason this was commented out, idk why
+			control:CallMethod("CallMethodFromFrame", self:GetName(), "ButtonContentsChanged", state, kind, value)
 		else
 			-- get the action for (pet-)action buttons
 			buttonAction = self:GetAttribute("action")
-			if self:GetID() > 0 then - cp stuffie
+			if self:GetID() > 0 then
 				buttonAction = buttonAction + ((self:GetAttribute('actionpage') - 1) * 12)
 			end
 		end
@@ -337,36 +336,32 @@ function SetupSecureSnippets(button)
 
 	button:SetScript("OnDragStart", nil)
 	-- Wrapped OnDragStart(self, button, kind, value, ...)
-	button.header:WrapScript(button, "OnDragStart", [[
-		--return control:RunAttribute("OnDragStart") -- 
-		--control:RunFor(self, self:GetAttribute("OnDragStart"))
+	button.header:WrapScript(button, "OnDragStart", [[ 
+		return control:RunFor(self, self:GetAttribute("OnDragStart"))
 	]])
 	-- Wrap twice, because the post-script is not run when the pre-script causes a pickup (doh)
 	-- we also need some phony message, or it won't work =/
 	button.header:WrapScript(button, "OnDragStart", [[
 		return "message", "update";
-	]], [[
-		--control:RunAttribute("UpdateState", self:GetAttribute("state")) -- 
-		--control:RunFor(self, self:GetAttribute("UpdateState"), self:GetAttribute("state"))
+	]], [[ 
+		control:RunFor(self, self:GetAttribute("UpdateState"), self:GetAttribute("state"))
 	]])
 
 	button:SetScript("OnReceiveDrag", nil)
 	-- Wrapped OnReceiveDrag(self, button, kind, value, ...)
 	button.header:WrapScript(button, "OnReceiveDrag", [[
-		--return control:RunAttribute("OnReceiveDrag", kind, value, ...) -- 
-		--control:RunFor(self, self:GetAttribute("OnReceiveDrag"), kind, value, ...)
+		control:RunFor(self, self:GetAttribute("OnReceiveDrag"), kind, value, ...)
 	]])
 	-- Wrap twice, because the post-script is not run when the pre-script causes a pickup (doh)
 	-- we also need some phony message, or it won't work =/
 	button.header:WrapScript(button, "OnReceiveDrag", [[
 		return "message", "update"
 	]], [[
-		--self:RunAttribute("UpdateState", self:GetAttribute("state"))
-	    --control:RunFor(self, self:GetAttribute("UpdateState"), self:GetAttribute("state"))
+	    control:RunFor(self, self:GetAttribute("UpdateState"), self:GetAttribute("state"))
 	]])
 
 	button:SetScript("OnAttributeChanged", function(self, ...)
-		button:ButtonContentsChanged(...) -- probably not needed for CP
+		button:ButtonContentsChanged(...) 
 	end)
 end
 
@@ -391,7 +386,7 @@ function WrapOnClick(button)
 			end
 		end
 	]], [[
-		if down then -- cp?
+		if down then
 			local type, action = GetActionInfo(self:GetAttribute("action"))
 			if message ~= format("%s|%s", tostring(type), tostring(action)) then
 				control:RunAttribute("UpdateState", self:GetAttribute("state")) -- return control:RunFor(self, self:GetAttribute("UpdateState"), self:GetAttribute("state"))
@@ -485,7 +480,7 @@ function Generic:UpdateState(state)
 	else
 	-- TODO
 	end
-	self:UpdateAction()
+	self:UpdateAction() 
 end
 
 function Generic:GetAction(state)
@@ -553,10 +548,10 @@ function Generic:OnEnter()
 	self:FadeIn() 
 	if self.config.tooltip ~= "disabled" and (self.config.tooltip ~= "nocombat" or not InCombatLockdown()) then
 		UpdateTooltip(self)
-	end
--- no keybound stuff.
+	end 
+
 	if self._state_type == "action" and self.NewActionTexture then
-		--lib.ACTION_HIGHLIGHT_MARKS[self._state_action] = false
+	--	lib.ACTION_HIGHLIGHT_MARKS[self._state_action] = false
 		UpdateNewAction(self)
 	end
 end
@@ -566,8 +561,7 @@ function Generic:OnLeave()
 		self.header:FadeOut(self.header:GetAlpha())
 	end
 	self:FadeOut() 
-	GameTooltip:Hide()
-	--self:SetScript('OnUpdate', nil)
+	GameTooltip:Hide() 
 end
 
 -- Insecure drag handler to allow clicking on the button with an action on the cursor
@@ -585,7 +579,6 @@ function Generic:PreClick()
 	if self._state_type and self._state_type ~= "empty" then
 		self._old_type = self._state_type
 		self:SetAttribute("type", "empty")
-		--self:SetState(nil, "empty", nil)
 	end
 	self._receiving_drag = true
 end
@@ -818,7 +811,7 @@ function OnUpdate(_, elapsed)
 				local oldRange = button.outOfRange
 				button.outOfRange = (inRange == false)
 				if oldRange ~= button.outOfRange then
-					UpdateUsable(button) -- only update, no hotkey stuff
+					UpdateUsable(button)
 				end
 			end
 		end
@@ -833,7 +826,7 @@ function OnUpdate(_, elapsed)
 	end
 end
 
-function ShowGrid() -- i believe thisx does not matter after all
+function ShowGrid()
 	for button in next, ButtonRegistry do
 		if button:IsShown() then
 			button:SetShowGrid(true)
@@ -1032,9 +1025,9 @@ function Update(self)
 	-- Update icon and hotkey 
 	local texture = self:GetTexture()
 	if texture then   
-		self.rangeTimer = - 1 -- only this line, nothing else
+		self.rangeTimer = - 1
 	else
-		self.cooldown:Hide() -- only these two lines, nothing else.
+		self.cooldown:Hide()
 		self.rangeTimer = nil
 	end
  
@@ -1079,13 +1072,13 @@ function UpdateUsable(self)
 		local isUsable, notEnoughMana = self:IsUsable()
 		if isUsable then
 			self.icon:SetVertexColor(1, 1, 1)
-			--self.NormalTexture:SetVertexColor(1.0, 1.0, 1.0)
+			self.NormalTexture:SetVertexColor(1.0, 1.0, 1.0)
 		elseif notEnoughMana then
 			self.icon:SetVertexColor(unpack(self.config.colors.mana))
-			--self.NormalTexture:SetVertexColor(0.5, 0.5, 1.0)
+			self.NormalTexture:SetVertexColor(0.5, 0.5, 1.0)
 		else
 			self.icon:SetVertexColor(0.4, 0.4, 0.4)
-			--self.NormalTexture:SetVertexColor(1.0, 1.0, 1.0)
+			self.NormalTexture:SetVertexColor(1.0, 1.0, 1.0)
 		end
 	end
 end
@@ -1175,7 +1168,7 @@ function UpdateNewAction(self)
 	if self.NewActionTexture then
 		if self._state_type == "action" then -- and lib.ACTION_HIGHLIGHT_MARKS[self._state_action] then
 			self.NewActionTexture:Show()
-			UIFrameFadeOut(self.NewActionTexture, 10, 1, 0) -- cp i believe, i don't really know
+			UIFrameFadeOut(self.NewActionTexture, 10, 1, 0) 
 		else
 			self.NewActionTexture:Hide()
 		end
