@@ -18,6 +18,7 @@ do
 
 	for _, bar in pairs({
 		MainMenuBarArtFrame,
+		MainMenuBarMaxLevelBar,
 		BonusActionBarFrame,
 		MultiCastActionBarFrame,
 		MultiBarLeft,

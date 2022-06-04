@@ -481,12 +481,19 @@ function HANDLE:SetActionBinding(button, main, id, actionID)
 end
 
 function HANDLE:UpdateWrapperBindings(wrapper, bindings)
+	if InCombatLockdown() then return end;
+	
 	local main = wrapper['']
 
 	if bindings then
 		for modifier, button in pairs(wrapper.Buttons) do
 			local binding = bindings[modifier]
-			local actionID = binding and ConsolePort:GetActionID(binding)
+			local actionID
+			--if(GetBonusBarOffset() > 0) then
+			--	actionID = binding and ConsolePort:GetWBonusActionID(binding, GetBonusBarOffset())
+			--else
+				actionID = binding and ConsolePort:GetActionID(binding)
+			--end
 			local stateType, stateID
 			if actionID then
 				stateType, stateID = self:SetActionBinding(button, main, modifier, actionID)

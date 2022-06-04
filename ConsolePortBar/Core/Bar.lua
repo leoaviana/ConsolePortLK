@@ -329,13 +329,16 @@ for name, script in pairs({
 			control:RunAttribute('pageupdate')
 		end 
 	]],
+	['_onstate-override'] = [[ 
+		if GetBonusBarOffset() > 0 then
+			newstate = GetBonusBarOffset()+6
+		else
+			newstate = GetActionBarPage()
+		end
+		self:SetAttribute('actionpage', newstate)
+		control:ChildUpdate('actionpage', newstate)
+	]],
 	['_onstate-page'] = [[
-	--	if HasVehicleActionBar() then
-	--		newstate = GetVehicleBarIndex()
-	--	elseif HasOverrideActionBar() then
-	--		newstate = GetOverrideBarIndex()
-	--	elseif HasTempShapeshiftActionBar() then
-	--		newstate = GetTempShapeshiftBarIndex()
 		if GetBonusBarOffset() > 0 then
 			newstate = GetBonusBarOffset()+6
 		else
@@ -390,6 +393,8 @@ for _, event in ipairs({
 Bar.ignoreNode = true
 Bar.Buttons = {}
 Bar.Elements = {}
-Bar.isForbidden = true
+Bar.isForbidden = true 
+
 RegisterStateDriver(Bar, 'page', state)
+RegisterStateDriver(Bar, 'override', string.format("[bonusbar:1]%s; [bonusbar:2]%s; [bonusbar:3]%s; [bonusbar:4]%s; [bonusbar:5]%s; [bonusbar:6]%s", state, state, state, state, state, state))
 RegisterStateDriver(Bar, 'modifier', '[mod:ctrl,mod:shift] CTRL-SHIFT-; [mod:ctrl] CTRL-; [mod:shift] SHIFT-; ')

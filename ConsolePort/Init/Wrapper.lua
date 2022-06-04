@@ -85,7 +85,7 @@ function CPAPI:GetItemLevelColor(...)
 	if GetItemLevelColor then
 		return GetItemLevelColor(...)
 	end
-	return self:GetClassColor()
+	return RAID_CLASS_COLORS[select(2, UnitClass("player"))]
 end
 
 function CPAPI:GetAverageItemLevel(...)
@@ -734,7 +734,7 @@ end
 
 function CPAPI.RoundCooldown_OnSetCooldown(self, start, duration)
 	local parentname = self:GetParent():GetName().."RCooldown"
-	f = _G[parentname].spinner.f  
+	local f = _G[parentname].spinner.f  
 	f.start = start
 	f.parentname = parentname
 	f.duration = duration

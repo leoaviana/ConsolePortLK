@@ -33,6 +33,7 @@ Stance:SetScript('OnDragStart', Stance.StartMoving)
 Stance:SetScript('OnDragStop', Stance.StopMovingOrSizing)
 Stance:SetPoint('TOPRIGHT', 0, 50)
 Stance:SetSize(64, 64)
+Stance.initalized = false
 
 for _, event in pairs({
 	'PLAYER_ENTERING_WORLD',
@@ -184,17 +185,34 @@ Stance:SetScript('OnEvent', function(self, event, ...)
 		self:Update()
     elseif event == 'UPDATE_SHAPESHIFT_FORMS' or event == 'PLAYER_ENTERING_WORLD' then
 		-- reloads stance frame completely
-		STANCE_COUNT = GetNumShapeshiftForms();
-		
-		if(IsShaman) then
-			--print("something")
-		end 
+		STANCE_COUNT = GetNumShapeshiftForms(); 
 
-		if(STANCE_COUNT > 0) then			
-        	self:UpdateButtons()
-        	self:Update()
-        	self:SetupEverything()
-			self:Show();
+		if(not InCombatLockdown()) then
+			if(STANCE_COUNT > 0) then			
+				self:UpdateButtons()
+				self:Update()
+				self:SetupEverything()
+				self:Show();
+				self.initialized = true
+			end
+
+		else
+			self.initialized = false
+
+		end
+	elseif event == 'PLAYER_REGEN_ENABLED' then
+		if(self.initialized == false and GetNumShapeshiftForms() > 0) then
+			STANCE_COUNT = GetNumShapeshiftForms(); 
+
+			if(not InCombatLockdown()) then 
+				self:UpdateButtons()
+				self:Update()
+				self:SetupEverything()
+				self:Show();
+				self.initialized = true 
+			else
+				self.initialized = false
+			end
 		end
 	elseif event == 'SPELL_UPDATE_COOLDOWN' then
 		if(STANCE_COUNT > 0) then
