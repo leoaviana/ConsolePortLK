@@ -1,3 +1,5 @@
+-- Only for compatibility purposes, animations will not work.
+
 CPAnimatedStatusBarMixin = {};
 
 local DEFAULT_ACCUMULATION_TIMEOUT_SEC = .1;
@@ -10,7 +12,9 @@ function CPAnimatedStatusBarMixin:OnLoad()
 	self.OnSetStatusBarAnimUpdateCallback = function(...) self:OnSetStatusBarAnimUpdate(...); end;
 	self.accumulationTimeoutInterval = DEFAULT_ACCUMULATION_TIMEOUT_SEC;
 	self.matchLevelOnFirstWrap = true;
-	self.matchBarValueToAnimation = false;
+	self.matchBarValueToAnimation = false;   
+
+	self:SetScript("OnUpdate", self.OnUpdate);
 
 	self:Reset();
 end
@@ -48,17 +52,8 @@ function CPAnimatedStatusBarMixin:GetOnAnimatedValueChangedCallback()
 	return self.animatedValueChangedCallback;
 end
 
-local function SetAnimatedTextureColorsHelper(self, r, g, b)
-	if self.ColorableTextures then
-		for i, texture in ipairs(self.ColorableTextures) do
-			texture:SetVertexColor(r, g, b);
-		end
-	end
-end
-
 function CPAnimatedStatusBarMixin:SetAnimatedTextureColors(r, g, b)
-	self.animatedTextureColors = { r, g, b };
-	SetAnimatedTextureColorsHelper(self, r, g, b);
+	-- stub
 end
 
 -- Instead of using SetMinMaxValues or SetValue use this method instead
@@ -115,7 +110,7 @@ function CPAnimatedStatusBarMixin:OnUpdate(elapsed)
 end
 
 function CPAnimatedStatusBarMixin:IsAnimating()
-	return self.Anim:IsPlaying();
+	return false --self.Anim:IsPlaying();
 end
 
 function CPAnimatedStatusBarMixin:ProcessChangesInstantly()
@@ -152,7 +147,7 @@ function CPAnimatedStatusBarMixin:ProcessChanges()
 			self.pendingLevel = nil;
 		elseif self.pendingLevel > self.level then
 			-- Going up some levels
-			levelIsIncreasing = true;
+			--levelIsIncreasing = true;
 		elseif self.pendingLevel == self.level then
 			-- Same level now, start from nothing
 			self.pendingLevel = nil;
@@ -216,71 +211,19 @@ function CPAnimatedStatusBarMixin:ProcessChanges()
 	self.targetValue = newValue;
 	self.levelIsIncreasing = levelIsIncreasing;
 
-	if deltaAsPercent == 0 then
-		self:OnAnimFinished();
-	else
-		self:SetupAnimationGroupForValueChange(self.Anim, oldValueAsPercent, deltaAsPercent);
-		self:StartTilingAnimation(oldValueAsPercent, deltaAsPercent);
-	end
-end
-
-local function SetupAnimationGroupForValueChangeHelper(self, startingPercent, percentChange, ...)
-	for i = 1, select("#", ...) do
-		self:SetupAnimationForValueChange(select(i, ...), startingPercent, percentChange);
-	end
-end
+	self:OnAnimFinished()
+end 
 
 function CPAnimatedStatusBarMixin:SetupAnimationGroupForValueChange(animationGroup, startingPercent, percentChange)
-	SetupAnimationGroupForValueChangeHelper(self, startingPercent, percentChange, animationGroup:GetAnimations());
-
-	animationGroup:SetScript("OnFinished", self.OnFinishedCallback);
-
-	animationGroup:Play();
+	-- stub
 end
 
 function CPAnimatedStatusBarMixin:SetupAnimationForValueChange(anim, startingPercent, percentChange)
-	local objectType = anim:GetObjectType();
-
-	if anim.adjustAnchors then
-		for i = 1, anim:GetTarget():GetNumPoints() do
-			local point, relativeTo, relativePoint, offsetX, offsetY = anim:GetTarget():GetPoint(i);
-			anim:GetTarget():SetPoint(point, relativeTo, relativePoint, startingPercent * self:GetWidth(), offsetY);
-		end
-	end
-
-	if anim.durationPerDistance then
-		anim:SetDuration(self:GetWidth() * percentChange * anim.durationPerDistance);
-	end
-
-	if anim.delayPerDistance then
-		anim:SetStartDelay(self:GetWidth() * percentChange * anim.delayPerDistance);
-	end
-
-	if objectType == "Translation" then
-		if anim.adjustOffsetX then
-			anim:SetOffset(percentChange * self:GetWidth(), 0);
-		end
-	elseif objectType == "Scale" then
-		if anim.adjustScaleTo then
-			anim:SetToScale(percentChange * self:GetWidth() * (anim.scaleFactor or 1), 1);
-		end
-	end
-
-	if anim.setStatusBarOnUpdate then
-		anim:SetScript("OnUpdate", self.OnSetStatusBarAnimUpdateCallback);
-	end
+	-- stub
 end
 
 function CPAnimatedStatusBarMixin:OnSetStatusBarAnimUpdate(anim, elapsed)
-	self.continuousAnimatedValue = self.startValue + (self.targetValue - self.startValue) * anim:GetProgress();
-	self.animatedValue = math.floor(self.continuousAnimatedValue);
-
-	if self:GetMatchBarValueToAnimation() then
-		self:SetValue(self.animatedValue);
-	else
-		self:SetValue(self.targetValue);
-	end
-	self:OnValueChanged();
+	-- stub
 end
 
 function CPAnimatedStatusBarMixin:OnValueChanged()
@@ -296,7 +239,7 @@ function CPAnimatedStatusBarMixin:OnAnimFinished()
 		else
 			self.level = self.level + 1;
 		end
-		self:SetValue(0);
+		self:SetValue(0); 
 		self:MarkDirty(true);
 		self:OnValueChanged();
 	else
@@ -312,61 +255,13 @@ function CPAnimatedStatusBarMixin:OnAnimFinished()
 end
 
 function CPAnimatedStatusBarMixin:AcquireTileTemplate()
-	self.numUsedTileTemplates = (self.numUsedTileTemplates or 0) + 1;
-	if not self.tileTemplates then
-		self.tileTemplates = {};
-	end
-	if not self.tileTemplates[self.numUsedTileTemplates] then
-		self.tileTemplates[self.numUsedTileTemplates] = CreateFrame("FRAME", nil, self:GetParent(), self.tileTemplate);
-	end
-
-	if self.animatedTextureColors then
-		SetAnimatedTextureColorsHelper(self.tileTemplates[self.numUsedTileTemplates], unpack(self.animatedTextureColors));
-	end
-	return self.numUsedTileTemplates, self.tileTemplates[self.numUsedTileTemplates];
+	-- stub
 end
 
 function CPAnimatedStatusBarMixin:ReleaseAllTileTemplate()
-	if self.tileTemplates then
-		for i, tileTemplate in ipairs(self.tileTemplates) do
-			tileTemplate.Anim:Stop();
-			tileTemplate:ClearAllPoints();
-			tileTemplate:Hide();
-		end
-		self.numUsedTileTemplates = 0;
-	end
-end
-
-local function ApplyDelayToAllAnims(delay, ...)
-	for i = 1, select("#", ...) do
-		local anim = select(i, ...);
-		if anim:GetOrder() == 1 then
-			anim:SetStartDelay(delay);
-		end
-	end
-end
+	-- stub
+end 
 
 function CPAnimatedStatusBarMixin:StartTilingAnimation(startingPercent, percentChange)
-	if self.tileTemplate and self.tileTemplateWidth and self.tileTemplateOverlap then
-		self:ReleaseAllTileTemplate();
-
-		assert(self.tileTemplateWidth > self.tileTemplateOverlap); -- Or we'd never stop tiling
-
-		local width = self:GetWidth();
-		local startingX = width * startingPercent;
-		local barWidthLeft = width * percentChange;
-		while barWidthLeft > self.tileTemplateOverlap do
-			local tileTemplateIndex, tileTemplate = self:AcquireTileTemplate();
-			tileTemplate:Show();
-			tileTemplate:SetPoint("LEFT", self, "LEFT", startingX + (tileTemplateIndex - 1) * self.tileTemplateWidth + (tileTemplateIndex - 2) * -self.tileTemplateOverlap, 0);
-			if self.tileTemplateDelay then
-				ApplyDelayToAllAnims((tileTemplateIndex - 1) * self.tileTemplateDelay, tileTemplate.Anim:GetAnimations());
-			end
-			
-			tileTemplate:SetWidth(math.min(self.tileTemplateWidth, math.max(barWidthLeft, self.tileTemplateWidth / 2)));
-			tileTemplate.Anim:Play();
-
-			barWidthLeft = barWidthLeft - (self.tileTemplateWidth - self.tileTemplateOverlap);
-		end
-	end
+	-- stub
 end

@@ -5,7 +5,7 @@
 	<Frame name="CP_StatusTrackingBarTemplate" frameStrata="MEDIUM" enableMouse="true" hidden="true" virtual="true">
 		<Size x="804" y="11"/>
 		<Frames>
-			<StatusBar name="$parentStatusBar" parentKey="StatusBar" frameStrata="LOW" drawLayer="BORDER" inherits="AnimatedStatusBarTemplate">
+			<StatusBar name="$parentSB" parentKey="StatusBar" frameStrata="LOW" drawLayer="BORDER" inherits="CP_AnimatedStatusBarTemplate">
 				<Size x="804" y="10"/>
 				<Anchors>
 					<Anchor point="RIGHT" x="0" y="0"/>
@@ -30,12 +30,12 @@
 					</Layer>
 				</Layers>
 			</StatusBar>
-			<Frame parentKey="OverlayFrame" frameStrata="HIGH" setAllPoints="true">
+			<Frame name="$parentOF" parentKey="OverlayFrame" frameStrata="HIGH" setAllPoints="true">
 				<Layers>
 					<Layer level="ARTWORK" textureSubLevel="5">
 						<FontString parentKey="Text" inherits="TextStatusBarText" hidden="true">
 							<Anchors>
-								<Anchor point="CENTER" relativeTo="$parentStatusBar" relativePoint="CENTER" x="0" y="1"/>
+								<Anchor point="CENTER" relativeTo="$parentSB" relativePoint="CENTER" x="0" y="1"/>
 							</Anchors>
 						</FontString>
 					</Layer>
@@ -48,6 +48,8 @@
 		<Scripts>
 			<OnLoad>
 				CPAPI.Mixin(self.StatusBar, CPAnimatedStatusBarMixin)
+				self.StatusBar:OnLoad();
+				
 				CPAPI.Mixin(self, CPReputationBarMixin)
 				self:OnLoad()
 				self:SetScript("OnEvent", self.OnEvent)
@@ -62,7 +64,7 @@
 		<Size x="804" y="11"/>
 		<Layers>
 			<Layer level="ARTWORK" textureSubLevel="-1">
-				<Texture name="$parentExhaustionLevelFillBar" parentKey="ExhaustionLevelFillBar" file="Interface\AddOns\ConsolePortBar\Textures\XPBar">
+				<Texture name="$parentELFB" parentKey="ExhaustionLevelFillBar" file="Interface\AddOns\ConsolePortBar\Textures\XPBar">
 					<Size x="0" y="10"/>
 					<Anchors>
 						<Anchor point="TOPLEFT"/>
@@ -72,10 +74,10 @@
 			</Layer>
 		</Layers>
 		<Frames>
-			<Button parentKey="ExhaustionTick" hidden="true" frameStrata="HIGH" mixin="CPExhaustionTickMixin">
+			<Button name="$parentET" parentKey="ExhaustionTick" hidden="true" frameStrata="HIGH" mixin="CPExhaustionTickMixin">
 				<Size x="32" y="32"/>
 				<Anchors>
-					<Anchor point="CENTER" relativeTo="$parentExhaustionLevelFillBar" relativePoint="RIGHT"/>
+					<Anchor point="CENTER" relativeTo="$parentELFB" relativePoint="RIGHT"/>
 				</Anchors>
 				<NormalTexture parentKey="Normal" file="Interface\MainMenuBar\UI-ExhaustionTickNormal"/>
 				<HighlightTexture parentKey="Highlight" file="Interface\MainMenuBar\UI-ExhaustionTickHighlight" alphaMode="ADD"/>
@@ -93,6 +95,8 @@
 		<Scripts>
 			<OnLoad>
 				CPAPI.Mixin(self.StatusBar, CPAnimatedStatusBarMixin)
+				self.StatusBar:OnLoad();
+
 				CPAPI.Mixin(self, CPExpBarMixin)
 				self:OnLoad()
 				self:SetScript("OnEvent", self.OnEvent)

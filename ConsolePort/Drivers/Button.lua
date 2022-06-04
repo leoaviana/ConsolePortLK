@@ -121,12 +121,13 @@ function ConsolePort:SetSecureButton(name, modifier, command)
 	-----------------------------------------------------------
 	btn.HotKeys = {}
 	btn.CreateHotkey = db.CreateHotkey
+
 	-----------------------------------------------------------
 	btn:SetAttribute('_childupdate-combat', [[
 		if message then
 			self:SetAttribute('clickbutton', nil)
-			self:Hide()
-			control:CallMethod('Clear')
+			self:Hide() 
+			--control:CallMethod('Clear')
 		end
 	]])
 	-----------------------------------------------------------
