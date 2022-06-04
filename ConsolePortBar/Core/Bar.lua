@@ -330,15 +330,15 @@ for name, script in pairs({
 		end 
 	]],
 	['_onstate-override'] = [[ 
-		if GetBonusBarOffset() > 0 then
-			newstate = GetBonusBarOffset()+6
-		else
-			newstate = GetActionBarPage()
-		end
-		self:SetAttribute('actionpage', newstate)
-		control:ChildUpdate('actionpage', newstate)
+		control:RunAttribute('UpdateActionBar')
+	]],
+	['_onstate-override_hidden'] = [[  
+		control:RunAttribute('UpdateActionBar') 
 	]],
 	['_onstate-page'] = [[
+		control:RunAttribute('UpdateActionBar')
+	]],
+	['UpdateActionBar'] = [[
 		if GetBonusBarOffset() > 0 then
 			newstate = GetBonusBarOffset()+6
 		else
@@ -353,7 +353,7 @@ for name, script in pairs({
 
 		if down then
 			if not storedSpellID then
-				storedSpellID = self:RunAttribute('GetSpellID', actionID)
+				storedSpellID = control:RunFor(self, self:GetAttribute('GetSpellID'), actionID)
 				storedButtonID = buttonID
 				if reticleSpellManifest[storedSpellID] then
 					control:CallMethod('StopCamera')
@@ -396,5 +396,13 @@ Bar.Elements = {}
 Bar.isForbidden = true 
 
 RegisterStateDriver(Bar, 'page', state)
-RegisterStateDriver(Bar, 'override', string.format("[bonusbar:1]%s; [bonusbar:2]%s; [bonusbar:3]%s; [bonusbar:4]%s; [bonusbar:5]%s; [bonusbar:6]%s", state, state, state, state, state, state))
+
+local ov_driver = {}
+table.insert(ov_driver, "[bonusbar:5]11") 
+for i=1, 6 do
+	table.insert(ov_driver, string.format("[bonusbar:%s]%s",i, i))
+end
+
+RegisterStateDriver(Bar, 'override_hidden', '[bonusbar:1][bonusbar:2][bonusbar:3][bonusbar:4][bonusbar:5] show; hide')
+RegisterStateDriver(Bar, 'override', table.concat(ov_driver, ';'))
 RegisterStateDriver(Bar, 'modifier', '[mod:ctrl,mod:shift] CTRL-SHIFT-; [mod:ctrl] CTRL-; [mod:shift] SHIFT-; ')

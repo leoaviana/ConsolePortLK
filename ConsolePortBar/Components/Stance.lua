@@ -93,14 +93,14 @@ end
 
 
 function Stance:UpdateButtons() 
-	local RADIAN_FRACTION = rad( 360 / (3 - 2) )
+	local RADIAN_FRACTION = rad( 360 / (GetNumShapeshiftForms()) )
 	local Mixin = db.table.mixin
     Stance.Buttons = {}
 
     
 
-	for i=1, STANCE_COUNT do
-		local x, y, r = 0, 0, 60 -- xOffset, yOffset, radius
+	for i=1, GetNumShapeshiftForms() do
+		local x, y, r = 0, 0, 40 -- xOffset, yOffset, radius
 		local angle = (i+3) * RADIAN_FRACTION
 		local ptx, pty = x + r * math.cos( angle ), y + r * math.sin( angle )
 
@@ -154,12 +154,8 @@ function Stance:UpdateButtons()
             else
                 button:SetPoint('TOP', 0, 12)
             end
-        else
-            if(i < 3) then
-                button:SetPoint(i == 1 and 'BOTTOMLEFT' or 'BOTTOMRIGHT', i == 1 and 4 or -4, -12)
-            else
-                button:SetPoint(i == 3 and 'TOPLEFT' or 'TOPRIGHT', i == 3 and 4 or -4, 12)
-            end
+        elseif(STANCE_COUNT > 3) then
+			button:SetPoint('CENTER', ptx, -pty) 
         end
         
 		button:SetSize(28, 28)
@@ -261,7 +257,7 @@ function Stance:Update()
 end
 
 function Stance:UpdateCooldowns()
-	for i=1, STANCE_COUNT, 1 do
+	for i=1, GetNumShapeshiftForms(), 1 do
 		local button = Stance.Buttons[i]
 		local cooldown = button.cooldown
 		local start, duration, enable = GetShapeshiftFormCooldown(i)
@@ -306,129 +302,31 @@ function Stance:SetupEverything() -- Wheel setup
 		KEYS.RIGHT 	= false		KEYS.D 		= false
 		---------------------------------------------------------------
 		OnKey = [=[
-			if self:IsVisible() then
-				local key, down = ...
-				-----------------------------
-				if BUTTON then
-					BUTTON:SetWidth(40)
-					BUTTON:SetHeight(40)
-				end
-				-----------------------------
-				if down then
-					if key == 'UP' then
-						KEYS.DOWN = false
-						KEYS.UP = true
-					elseif key == 'DOWN' then
-						KEYS.UP = false
-						KEYS.DOWN = true
-					elseif key == 'LEFT' then
-						KEYS.RIGHT = false
-						KEYS.LEFT = true
-					elseif key == 'RIGHT' then
-						KEYS.LEFT = false
-						KEYS.RIGHT = true
-					end
-				else
-					KEYS[key] = false
-				end
-				-----------------------------
-				INDEX = 
-					( KEYS.UP and KEYS.RIGHT 	) and 2 or -- Up/right
-					( KEYS.DOWN and KEYS.RIGHT 	) and 4 or -- Down/right
-					( KEYS.DOWN and KEYS.LEFT 	) and 6 or -- Down/left
-					( KEYS.UP and KEYS.LEFT 	) and 8 or -- Up/left
-					( KEYS.UP 					) and 1 or -- Up
-					( KEYS.RIGHT 				) and 3 or -- Right
-					( KEYS.DOWN 				) and 5 or -- Down
-					( KEYS.LEFT 				) and 7 or 0 -- Left || none
-				-----------------------------
-				self:SetAttribute('index', INDEX)
-				BUTTON = BUTTONS[INDEX]
-				if BUTTON then
-					BUTTON:SetWidth(50)
-					BUTTON:SetHeight(50)
-				end
-				-----------------------------
-			end
+			
 		]=]
-		SetBindingClick = [=[
-			local binding, owner, ID = ...
-			self:SetBindingClick(true, binding, owner, ID)
-			self:SetBindingClick(true, 'CTRL-'..binding, owner, ID)
-			self:SetBindingClick(true, 'SHIFT-'..binding, owner, ID)
-			self:SetBindingClick(true, 'CTRL-SHIFT-'..binding, owner, ID)
+		SetBindingClick = [=[ 
+
 		]=]
 	]])
 
 	Stance:WrapScript(Stance, 'PreClick', [[
-		self:SetAttribute('type', nil)
-
-		-- Target pet on regular click
-		-----------------------------
-		if button == TARGET_PET then
-			if not down then
-				self:SetAttribute('type', 'target')
-			end
-		-----------------------------
-
-		-- Show unit menu on right click
-		-----------------------------	
-		elseif button == TOGGLE_MENU then
-			if not down then
-				self:SetAttribute('type', 'togglemenu')
-			end
-		-----------------------------
-
-		-- Pet control
-		-----------------------------
-		elseif button == CONTROL_PET then
-			-----------------------------
-			-- Enable
-			-----------------------------
-			if down then
-				for binding, keyID in pairs(BINDINGS) do
-					control:Run(SetBindingClick, binding, self:GetFrameRef(keyID):GetName(), 'MiddleButton')
-				end
-
-				-- Attack / follow buttons
-				-----------------------------
-				local key1 = GetBindingKey('CP_T1')
-				local key2 = GetBindingKey('CP_T2')
-
-				if key1 then control:Run(SetBindingClick, key1, 'ConsolePortBarPet1', 'LeftButton') end
-				if key2 then control:Run(SetBindingClick, key2, 'ConsolePortBarPet2', 'LeftButton') end
-				-----------------------------
-
-				-- Signal the insecure changes
-				control:CallMethod('OnControlPet', true)
-			-----------------------------
-			-- Disable
-			-----------------------------
-			else
-				if BUTTON then
-					self:SetAttribute('type', 'macro')
-					self:SetAttribute('macrotext', ('/click %s'):format(BUTTON:GetName()))
-					BUTTON:SetWidth(40)
-					BUTTON:SetHeight(40)
-					BUTTON = nil
-				end
-				self:ClearBindings()
-				control:CallMethod('OnControlPet', false)
-			end
-		end
+		
 	]])
 
-	Stance:WrapScript(Stance, 'OnHide', [[
-		self:ClearBindings()
+	Stance:WrapScript(Stance, 'OnHide', [[ 
+
 	]])
  
  	-- Set these buttons to handle the input for the ring.
      local catchnil = CreateFrame('CheckButton', '', nil) 
      local actionButtons = {
-		[Stance.Buttons[1] or catchnil] = 'UP',
-		[Stance.Buttons[2] or catchnil] = 'RIGHT',
-		[Stance.Buttons[3] or catchnil] = 'DOWN',
-		[Stance.Buttons[4] or catchnil] = 'LEFT',
+		[Stance.Buttons[1] or catchnil] = '',
+		[Stance.Buttons[2] or catchnil] = '',
+		[Stance.Buttons[3] or catchnil] = '',
+		[Stance.Buttons[4] or catchnil] = '',		
+		[Stance.Buttons[5] or catchnil] = '',		
+		[Stance.Buttons[6] or catchnil] = '',
+		[Stance.Buttons[7] or catchnil] = '',
 	}
 
 	for button, keyID in pairs(actionButtons) do

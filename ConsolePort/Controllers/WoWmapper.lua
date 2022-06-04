@@ -20,10 +20,10 @@ WoWmapper.Keys = {
 }
  
 WoWmapper.Settings = {
-	id        = '132953525462924420',
+	id        = '132987999429983743',
 	type      = 'XBOX',
-    CP_M1     = 'CP_TL1',
-    CP_M2     = 'CP_TL2',
-    CP_T1     = 'CP_TR1',
-    CP_T2     = 'CP_TR2',
+    CP_M1     = 'CP_TL2',
+    CP_M2     = 'CP_TR2',
+    CP_T1     = 'CP_TL1',
+    CP_T2     = 'CP_TR1',
 }

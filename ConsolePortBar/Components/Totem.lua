@@ -389,8 +389,8 @@ function Totem:SetupEverything()
 		 
 	]])
 
-	Totem:WrapScript(Totem, 'OnHide', [[
-		self:ClearBindings()
+	Totem:WrapScript(Totem, 'OnHide', [[ 
+		
 	]])
  
  	-- placebo
