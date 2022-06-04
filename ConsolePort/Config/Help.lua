@@ -1,6 +1,5 @@
 --if select(5, GetAddOnInfo('ConsolePortHelp')) ~= 'DEMAND_LOADED' then return end
-local addenabled, addloadable
-_, _, _, addenabled, addloadable, _, _ = GetAddOnInfo('ConsolePortHelp')
+local addenabled, addloadable, _, _ = GetAddOnInfo('ConsolePortHelp')
 if(addenabled ~= 1 and addloadable ~= 1) then
 	return
 end

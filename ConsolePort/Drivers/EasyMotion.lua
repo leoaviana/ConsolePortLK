@@ -289,6 +289,9 @@ for name, script in pairs({
 }) do EM:WrapScript(Input, name, script) end
 
 function EM:OnNewBindings(...)
+	
+	if(InCombatLockdown()) then return end
+
 	local keys = {
 		plate = {ConsolePort:GetCurrentBindingOwner('CLICK ConsolePortEasyMotionButton:RightButton')},
 		frame = {ConsolePort:GetCurrentBindingOwner('CLICK ConsolePortEasyMotionButton:LeftButton')},

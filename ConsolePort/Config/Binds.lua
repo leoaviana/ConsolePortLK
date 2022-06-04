@@ -441,6 +441,8 @@ local function SetMouseBindings(self, handler, bindingSet)
 end
 
 function ConsolePort:LoadBindingSet(newBindingSet, fireCallback)
+	if(InCombatLockdown()) then return end
+	
 	local calibration = db('calibration')
 	if calibration then
 		for binding, key in pairs(calibration) do
