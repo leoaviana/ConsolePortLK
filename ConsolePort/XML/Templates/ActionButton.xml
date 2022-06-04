@@ -70,14 +70,14 @@
 				<Size x="8" y="8"/>
 				<Scripts>
 				<OnLoad>
-					hooksecurefunc(self, 'SetCooldown', CP_OnSetRCooldownForCooldown)
+					hooksecurefunc(self, 'SetCooldown', CPAPI.RoundCooldown_OnSetCooldown)
 					self:SetAlpha(0)
 				</OnLoad>
 				<OnShow> 
-					CP_OnShowCooldown(self)
+					CPAPI.RoundCooldown_OnShowCooldown(self)
 				</OnShow>
 				<OnHide>
-					CP_OnHideCooldown(self)
+					CPAPI.RoundCooldown_OnHideCooldown(self)
 				</OnHide>
 				</Scripts>
 			</Cooldown> 
@@ -88,7 +88,7 @@
 				</Anchors>
 				<Scripts>
 				<OnLoad>
-					CP_OnLoadRoundCooldownFrame(self)
+					CPAPI.RoundCooldown_OnLoad(self)
 				</OnLoad> 
 				</Scripts>
 			</Frame>
