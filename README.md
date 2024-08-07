@@ -1,7 +1,11 @@
 # ConsolePortLK
 
 ## This is not a Wrath of the Lich King Classic AddOn.
-This AddOn represents an learning experiment, it is the backported version of ConsolePort 1.9.17 for World of Warcraft - Wrath of the Lich King legacy client (3.3.5a).
+This AddOn is the backported version of ConsolePort 1.9.17 for World of Warcraft - Wrath of the Lich King legacy client (3.3.5a).<br /><br />
+
+I have ported it long time ago and never released, now I'm finally sharing what I was able to do. it's not the complete ConsolePort 1.9.17 experience
+due to missing functionality in the old client Lua API implementation but I believe it is in an usable state, but it has not been extensively tested (raids, instances, battlegrounds)
+so there might be bugs but I believe I ironed most if not all game breaking bugs.
 
 <br />
 
@@ -10,9 +14,8 @@ ConsolePort is an interface add-on for World of Warcraft that will give you a ha
 in order to let you play the game on a controller - without inconvenience.
 <br/><br/>
 Consisting of several modules, ConsolePort is a fully-fledged solution to handling all the quirks in a game where gamepad support was not intended,
-including interface navigation, custom-tailored UI elements to assist in gameplay, and easy-to-use targeting systems
-for end-game content. As of Shadowlands, No external software is required. However for this backported version a custom
-WoWmapper version was developed to have a better integration with the Wrath of the Lich King (3.3.5a) client using it's older memory reading functions.
+including interface navigation, custom-tailored UI elements to assist in gameplay. You will need a controller mapping software to use this AddOn. the original project used a app called WoWmapper which
+already did the mapping automatically, I myself forked and customized WoWmapper to have a better integration with the Wrath of the Lich King (3.3.5a) client using it's older memory reading functions, however it's not required, you can use any controller mapping software.
 
 ## Screenshots:
 
@@ -70,3 +73,7 @@ If your issue is graphical, please take some screenshots to illustrate it.
 What were you doing when the problem occurred?
 <br />
 Explain how people can reproduce the issue.
+<br />
+<br />
+### Can you port this to 2.4.3 or older?
+ConsolePort relies mostly on [RestrictedEnvironment](https://wowwiki-archive.fandom.com/wiki/RestrictedEnvironment) functions and [SecureHandlers](https://wowwiki-archive.fandom.com/wiki/SecureHandlers), most of those we're implemented into the game client after patch 3.0, so <b>no.</b> I'm not saying that it is completely impossible to port but as far I know there is no alternatives to RestrictedEnvironment on older clients, it seems like that there is an alternative to SecureHandlers implemented in patch 2.0 but the documentation about it is scarce and I do not have any interest in porting it to older versions because if possible, it's too much work.
