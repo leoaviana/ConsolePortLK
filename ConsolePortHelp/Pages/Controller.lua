@@ -160,7 +160,7 @@ end
 -- WoWmapper description page
 Help:AddPage('WoWmapper', 'Controller', [[<HTML><BODY>
 	<IMG src="Interface\AddOns\ConsolePort\Textures\Logos\WM" align="center" width="128" height="128"/>
-	<br/><br/><br/><br/><br/><br/><br/><br/><br/>
+	<br/><br/><br/><br/><br/><br/>
 	<H1 align="center">
 		What is WoWmapper?
 	</H1><br/>
@@ -192,7 +192,7 @@ Help:AddPage('WoWmapper', 'Controller', [[<HTML><BODY>
 
 Help:AddPage('Supported devices', 'WoWmapper', [[<HTML><BODY>
 	<IMG src="Interface\AddOns\ConsolePort\Textures\Logos\WM" align="center" width="128" height="128"/>
-	<br/><br/><br/><br/><br/><br/><br/><br/><br/>
+	<br/><br/><br/><br/><br/><br/>
 	<H1 align="center">
 		Supported devices
 	</H1><br/>
@@ -203,6 +203,8 @@ Help:AddPage('Supported devices', 'WoWmapper', [[<HTML><BODY>
 		Natively supported:
 	</H2>
 	<p align="left">
+		|cff69ccf0•|r DualSense |TInterface\AddOns\ConsolePortHelp\Textures\Bluetooth:16:16:0:0|t<br/>
+		|cff69ccf0•|r DualSense Edge |TInterface\AddOns\ConsolePortHelp\Textures\Bluetooth:16:16:0:0|t<br/>
 		|cff69ccf0•|r DualShock 4 Pro |TInterface\AddOns\ConsolePortHelp\Textures\Bluetooth:16:16:0:0|t<br/>
 		|cff69ccf0•|r DualShock 4 Standard |TInterface\AddOns\ConsolePortHelp\Textures\Bluetooth:16:16:0:0|t<br/>
 		|cff69ccf0•|r Xbox One Controller |TInterface\AddOns\ConsolePortHelp\Textures\Bluetooth:16:16:0:0|t<br/>
@@ -210,16 +212,9 @@ Help:AddPage('Supported devices', 'WoWmapper', [[<HTML><BODY>
 		|cff69ccf0•|r Xbox 360 Wireless Controller |TInterface\AddOns\ConsolePortHelp\Textures\Bluetooth:16:16:0:0|t<br/>
 		|cff69ccf0•|r Xbox 360 Wired Controller<br/>
 	</p><br/>
-	<H2 align="left">
-		Confirmed working with X360CE:
-	</H2>
 	<p align="left">
-		|cff69ccf0•|r DualShock 3<br/>
-		|cff69ccf0•|r Logitech RumblePad 2<br/>
-		|cff69ccf0•|r Logitech Dual Action<br/>
-		|cff69ccf0•|r Generic DirectInput USB Controllers<br/>
-		|cff69ccf0•|r Aftermarket Xbox controllers (Afterglow, Razer Wildcat, etc.)
-	</p><br/><br/>
+		If your controller is not on this list, you can test it anyway but if it does not work, you probably should use x360ce.
+	</p><br/> 
 	<H2 align="center">
 		<a href="website:https://github.com/seblindfors/ConsolePort/wiki">Click here to get a link to the support article on how to setup X360CE with WoWmapper.</a>
 	</H2> 

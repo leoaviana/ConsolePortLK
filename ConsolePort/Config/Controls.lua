@@ -406,7 +406,7 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 		{'IBFull', {308, 270}, {'TOPRIGHT', -302, -8}, TUTORIAL.CONFIG.IBFULLHEADER},
 		{'IBLite', 	{308, 256}, {'TOPRIGHT', -302, -256}, TUTORIAL.CONFIG.IBLITEHEADER},
 		{'Mouse', 	{316, 340}, {'TOPRIGHT', -8, -8}, 	TUTORIAL.CONFIG.MOUSEHEADER},
-		{'General', {388, 570}, {'TOPLEFT', 8, -8}, 	TUTORIAL.CONFIG.GENERALHEADER},
+		{'General', {674 --[==[ 388 --]==], 570}, {'TOPLEFT', 8, -8}, 	TUTORIAL.CONFIG.GENERALHEADER},
 		{'Assist', 	{308, 166}, {'BOTTOM', 36, 8}, 		TUTORIAL.CONFIG.TARGETHEADER},
 		{'Camera', {316, 332}, {'BOTTOMRIGHT', -8, 8}, 	TUTORIAL.CONFIG.CAMERAHEADER},
 		{'Trigger', {820, 230}, {'BOTTOM', Controls.Controller.Container, 'BOTTOM', 0, 0},TUTORIAL.CONFIG.TRIGGERHEADER},
@@ -517,6 +517,8 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 	do local IBFullModule = Controls.IBFullModule
 
 		function IBFullModule:OnShow()
+			IBFullModule:Hide() -- disable for now
+
 			if self.Enable:GetChecked() then
 				FadeOut(self.Hand, .3, self.Hand:GetAlpha(), 0)
 				FadeOut(self.Dude, .3, self.Dude:GetAlpha(), 0)
@@ -633,8 +635,9 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 		}
 
 		for _, setup in pairs(interactButtons) do
-			GetCheckButton(IBFullModule, setup.name, setup.point, setup.label, setup.setting)
+			GetCheckButton(IBFullModule, setup.name, setup.point, setup.label, setup.setting):Disable() -- disabled for now
 		end
+ 
 	end
 
 	------------------------------------------------------------------------------------------------------------------------------
@@ -661,11 +664,12 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 		IBLiteModule.Enable.Text = IBLiteModule.Enable:CreateFontString(nil, 'OVERLAY', 'GameFontHighlight')
 		IBLiteModule.Enable.Text:SetPoint('LEFT', 30, 0)
 		IBLiteModule.Enable.Text:SetText(TUTORIAL.CONFIG.INTERACTCHECK)
-		IBLiteModule.Enable:SetChecked(Settings.lootWith)
+		IBLiteModule.Enable:SetChecked(Settings.lootWith) 
 		IBLiteModule.Enable:SetPoint('TOPLEFT', 24, -48)
 		IBLiteModule.Enable:SetScript('OnClick', function(self) self:GetParent():OnShow() end)
 
-		function IBLiteModule:OnShow()
+		function IBLiteModule:OnShow() 
+			IBLiteModule:Hide() --disable for now
 			if self.Enable:GetChecked() then
 				FadeOut(self.Dude, 0.5, self.Dude:GetAlpha(), 0.1)
 				self.Description:Hide()
@@ -694,6 +698,8 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 		IBLiteModule.BindCatcher:OnShow()
 
 		GetHelpButton(IBLiteModule, TUTORIAL.CONFIG.IBLITEHELP)
+
+
 	end
 
 	------------------------------------------------------------------------------------------------------------------------------
@@ -908,6 +914,8 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 			check:SetScript('OnClick', AssistClick)
 			Mixin(check, CheckButton)
 		end
+		
+		AssistModule:Hide()
 	end
 
 	------------------------------------------------------------------------------------------------------------------------------
@@ -1036,7 +1044,7 @@ db.PANELS[#db.PANELS + 1] = {name = 'Controls', header = SETTINGS, mixin = Windo
 			button.tooltipText = tooltip
 			button.link = link
 			button:SetNormalTexture('Interface\\AddOns\\ConsolePort\\Textures\\Logos\\'..id)
-			button:SetPoint('BOTTOMLEFT', (i * 72) - BASE_INSET, 26)
+			button:SetPoint('BOTTOMLEFT', (i * 128) - BASE_INSET, 26)
 			count = count + 1
 		end
 

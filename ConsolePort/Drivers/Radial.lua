@@ -297,7 +297,7 @@ local ENV_RADIAL = {
 			control:RunFor(HANDLE, HANDLE:GetAttribute('hClear'), self:GetName())
 			self:Hide()
 			control:RunAttribute('_oncursor', nil)
-			--wipe(BIT)
+			wipe(BIT)
 		end
 	]];
 	---------------------------------------------------------------

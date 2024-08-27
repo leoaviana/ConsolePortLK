@@ -19,6 +19,7 @@ do
 	for _, bar in pairs({
 		MainMenuBarArtFrame,
 		MainMenuBarMaxLevelBar,
+		VehicleMenuBar,
 		BonusActionBarFrame,
 		MultiCastActionBarFrame,
 		MultiBarLeft,

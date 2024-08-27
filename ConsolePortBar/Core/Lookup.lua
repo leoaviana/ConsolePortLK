@@ -7,7 +7,7 @@ do  local custom = [[Interface\AddOns\ConsolePortBar\Textures\Icons\%s]]
 	local isRetail = CPAPI:IsRetailVersion()
 	defaultIcons = {
 	----------------------------
-	JUMP = custom:format('Jump'),
+	JUMP = custom:format('Jump'), 
 	TOGGLERUN = custom:format('Run'),
 	OPENALLBAGS = custom:format('Bags'),
 	TOGGLEGAMEMENU = custom:format('Menu'),

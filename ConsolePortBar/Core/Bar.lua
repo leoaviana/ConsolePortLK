@@ -399,7 +399,7 @@ RegisterStateDriver(Bar, 'page', state)
 
 local ov_driver = {}
 table.insert(ov_driver, "[bonusbar:5]11") 
-for i=1, 6 do
+for i=1, 4 do
 	table.insert(ov_driver, string.format("[bonusbar:%s]%s",i, i))
 end
 

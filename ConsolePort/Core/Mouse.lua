@@ -5,6 +5,12 @@
 -- Allows user to mouseover their character to control camera.
 -- Toggles off on targeted spells, InteractUnit and pickups.
 
+
+-- I am not sure how to implement a similar function as the Interact Button since 
+-- we don't have the CanLootUnit function available, so we can't check loot vincinity
+-- so i think even if i do some weird workaround it won't work as expected. so it is disabled
+-- at least for now.
+
 local _, db = ...
 ---------------------------------------------------------------
 local TEXTURE, ICONS, Settings = db.TEXTURE, db.ICONS
@@ -584,7 +590,7 @@ function Mouse:TrackInsecureLootTarget(elapsed)
 		end
 		self:FadeOut()
 		if not hasLoot then
-			self:SetScript('OnUpdate', nil)
+			--self:SetScript('OnUpdate', nil)
 		end
 	end
 end

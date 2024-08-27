@@ -1,5 +1,5 @@
 ## Interface: 30300
-## Title: Console Port |cff69ccf0UI|r Menu
+## Title: Console Port |cFFFF6600LK|r |cff69ccf0UI|r Menu
 ## Notes: Replaces game menu.
 ## RequiredDeps: ConsolePort
 

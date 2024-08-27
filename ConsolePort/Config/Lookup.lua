@@ -230,7 +230,7 @@ function ConsolePort:GetActionPageDriver()
     local count, driver = 0, ''
     for i, macroCondition in ipairs({
         ----------------------------------
-        'vehicleui', 'bonusbar:5', 'overridebar', 'shapeshift',
+        'vehicleui', 'bonusbar:5',
         'bar:2', 'bar:3', 'bar:4', 'bar:5', 'bar:6',
         'bonusbar:1', 'bonusbar:2', 'bonusbar:3', 'bonusbar:4'
         ----------------------------------

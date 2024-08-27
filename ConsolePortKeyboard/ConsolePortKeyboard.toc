@@ -1,5 +1,5 @@
 ## Interface: 30300
-## Title: Console Port |cff69ccf0Keyboard|r
+## Title: Console Port |cFFFF6600LK|r |cff69ccf0Keyboard|r
 ## Notes: Keyboard extension for Console Port.
 ## SavedVariables: ConsolePortKeyboardLayout, ConsolePortKeyboardDictionary
 ## RequiredDeps: ConsolePort

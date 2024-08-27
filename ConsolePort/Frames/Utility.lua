@@ -345,12 +345,18 @@ function ConsolePortRingButtonMixin:OnTooltipUpdate(elapsed)
 		local action = self:GetAttribute('type')
 		if action == 'item' then
 			self.Tooltip:SetOwner(self, 'ANCHOR_BOTTOM', 0, -16)
-			self.Tooltip:SetItemByID(self:GetAttribute('cursorID'))
+			local _, itemlink = GetItemInfo(self:GetAttribute('cursorID'))
+			self.Tooltip:SetHyperlink(itemlink)
 		elseif action == 'spell' then
-			local id = select(7, GetSpellInfo(self:GetAttribute('spell')))
+			local id = self:GetAttribute("spell") 
 			if id then
-				self.Tooltip:SetOwner(self, 'ANCHOR_BOTTOM', 0, -16)
-				self.Tooltip:SetSpellByID(id)
+				Tooltip:SetOwner(self, "ANCHOR_BOTTOM", 0, -16) 
+				if(not self:GetAttribute("mountID")) then
+					local link = GetSpellLink(id)
+					Tooltip:SetHyperlink(link)
+				else 
+					Tooltip:SetHyperlink(string.format("|cff71d5ff|Hspell:%d|h[%s]|h|r", self:GetAttribute("mountID"), id))
+				end
 			end
 		end
 		self:SetScript('OnUpdate', nil)
@@ -389,7 +395,7 @@ function ConsolePortRingButtonMixin:SetCooldown(time, cooldown, enable)
 	end
 end
 
-function ConsolePortRingButtonMixin:SetCharges(charges)
+function ConsolePortRingButtonMixin:SetCharges(charges) 
 	self.Count:SetText(charges)
 end
 
@@ -400,7 +406,7 @@ end
 
 function ConsolePortRingButtonMixin:UpdateState()
 	local action = self:GetAttribute('type')
-	self:UpdateTexture(action)
+	self:UpdateTexture(action) 
 
 	if action == 'item' then
 		local item = self:GetAttribute('item')
@@ -413,9 +419,12 @@ function ConsolePortRingButtonMixin:UpdateState()
 		end
 	elseif action == 'spell' then
 		local spellID = self:GetAttribute('spell')
-		--self:SetCharges(GetSpellCharges(spellID))
 		if spellID then
-			self:SetUsable(IsUsableSpell(spellID))
+			local spellName = GetSpellInfo(spellID)
+			if(IsConsumableSpell(spellName)) then
+				self:SetCharges(GetSpellCount(spellName))
+			end
+			self:SetUsable(IsUsableSpell(spellName))
 			self:SetCooldown(GetSpellCooldown(spellID))
 		end
 	elseif action == 'action' then
@@ -609,7 +618,7 @@ function Utility:SetNewRotationValue(anglenew)
 end
 
 
-function Utility:OnEvent(event, ...)
+function Utility:OnEvent(event, ...) 
 	if (event == 'QUEST_ACCEPTED' or 
 		event == 'QUEST_POI_UPDATE' or 
 		event == 'QUEST_WATCH_LIST_CHANGED') and self.autoExtra then
@@ -774,7 +783,8 @@ local function OnButtonContentChanged(self, actionType)
 		cursorID = self:GetAttribute('cursorID');
 		mountID = self:GetAttribute('mountID');
 		autoassigned = self:GetAttribute('autoassigned');
-	}
+	} 
+	self:UpdateState()
 end
 
 local function OnButtonContentRemoved(self)
@@ -804,6 +814,7 @@ function Utility:OnRefresh(size)
 			actionButton:SetAttribute('autoassigned', info.autoassigned)
 			actionButton:SetAttribute('type', info.action)
 			actionButton:SetAttribute('cursorID', info.cursorID)
+			actionButton:SetAttribute("mountID", info.mountID)
 			actionButton:SetAttribute(info.action, info.value)
 			actionButton:Show()
 		end
@@ -847,10 +858,10 @@ function ConsolePort:AddUtilityAction(actionType, value)
 end
 
 function ConsolePort:SetupUtilityRing()
-	if not InCombatLockdown() then
+	if not InCombatLockdown() and Utility:GetAttribute("initialized") ~= true then 
 		Utility:UnregisterAllEvents()
 		Utility:Initialize()
-		self:RemoveUpdateSnippet(self.SetupUtilityRing)
+		self:RemoveUpdateSnippet(self.SetupUtilityRing) 
 	end
 end
 

@@ -69,13 +69,13 @@ function CPAPI:GetClassIcon(class)
 end
 
 function CPAPI:GetClassColor(class)
-	return GetClassColor(class or GetClassFile())
+	return RAID_CLASS_COLORS[class]
 end
 
 function CPAPI:GetCharacterMetadata()
 	-- returns specID, specName on retail
 	if GetSpecializationInfo and GetSpecialization then
-		return GetSpecializationInfo(GetSpecialization())
+		return GetSpecializationInfo(GetSpecializaton())
 	end
 	-- returns classID, localized class token on classic
 	return GetClassID(), GetClassInfo()
@@ -456,7 +456,7 @@ end
 	(Huge thanks to semlar, zork and Infus for the code.) and from the shine animation of the OmniCC AddOn!! thanks to https://www.curseforge.com/members/tullamods
 
 	Cooldown animations on 3.3.5a are squared and there is no way to make it round (no SetMask function available) like
-    in newer wow builds, so I had to find a way on how to make custom round cooldown frame and this is the result.
+    in newer wow builds, so I had to find a way on how to make custom round cooldown and this is the result of my research.
 
 --]==]
 

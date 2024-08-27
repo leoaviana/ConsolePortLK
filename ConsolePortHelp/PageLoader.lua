@@ -1,6 +1,7 @@
 local _, Help = ...
 ConsolePortHelp = Help
 Help.Pages = {}
+Help.WelcomeSubpages = {}
 
 function Help:SetWelcomePage(page)
 	self.WelcomePage = page
@@ -26,16 +27,16 @@ end
 
 function Help:AddPage(id, parentID, content)
 	local contentTable, valid = {}
-	if parentID then
-		local parentPage = self:FindParent(parentID)
-		if parentPage then
+	if parentID then 
+		local parentPage = (parentID == "welcome-page") and self.WelcomeSubpages or self:FindParent(parentID) or self:FindParent(parentID, self.WelcomeSubpages)
+		if parentPage then 
 			if not parentPage.children then
 				parentPage.children = {}
 			end
 			parentPage.children[id] = contentTable
 			valid = true
 		end
-	else
+	else 
 		self.Pages[id] = contentTable
 		valid = true
 	end
@@ -45,5 +46,5 @@ function Help:AddPage(id, parentID, content)
 end
 
 function Help:GetPages()
-	return self.Pages, self.WelcomePage
+	return self.Pages, self.WelcomePage, self.WelcomeSubpages
 end

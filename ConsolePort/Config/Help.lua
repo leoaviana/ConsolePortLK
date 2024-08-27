@@ -1,5 +1,5 @@
 --if select(5, GetAddOnInfo('ConsolePortHelp')) ~= 'DEMAND_LOADED' then return end
-local addenabled, addloadable, _, _ = GetAddOnInfo('ConsolePortHelp')
+local  _, _, addenabled, addloadable,  _, _ = GetAddOnInfo('ConsolePortHelp')
 if(addenabled ~= 1 and addloadable ~= 1) then
 	return
 end
@@ -141,7 +141,7 @@ function IndexButton:ParseContent()
 	end
 end
 
-function WindowMixin:AddPage(pageID, pageTable, depth)
+function WindowMixin:AddPage(pageID, pageTable, depth, welcome)
 	self.pageCount = self.pageCount + 1
 	depth = depth + 1
 
@@ -166,6 +166,10 @@ function WindowMixin:AddPage(pageID, pageTable, depth)
 
 	if pageTable.children then
 		for childID, childTable in spairs(pageTable.children) do
+			self:AddPage(childID, childTable, depth)
+		end
+	elseif welcome then
+		for childID, childTable in spairs(welcome.children) do
 			self:AddPage(childID, childTable, depth)
 		end
 	end
@@ -237,12 +241,13 @@ db.PANELS[#db.PANELS + 1] = {
 		end)
 
 		-- Generate index
-		self.Pages, self.WelcomePage = ConsolePortHelp:GetPages()
-		local welcomeIndex = self:AddPage('|cff69ccf0Introduction|r', {content = self.WelcomePage}, -1)
+		self.Pages, self.WelcomePage, self.WelcomeSubpages = ConsolePortHelp:GetPages()
+		local welcomeIndex = self:AddPage('|cff69ccf0Introduction|r', {content = self.WelcomePage}, -1, self.WelcomeSubpages)
 		welcomeIndex:Click()
 		for pageID, pageTable in spairs(self.Pages) do
 			self:AddPage(pageID, pageTable, -1)
-		end
+		end 
+
 		self.Index:Refresh(self.pageCount)
 		
 	end

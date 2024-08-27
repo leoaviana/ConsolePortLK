@@ -27,7 +27,7 @@
 			<Layer level="ARTWORK" textureSubLevel="2">
 				<FontString name="$parentCount" inherits="NumberFontNormal" parentKey="Count" justifyH="RIGHT">
 					<Anchors>
-						<Anchor point="BOTTOM" x="0" y="2"/>
+						<Anchor point="BOTTOM" x="0" y="6"/>
 					</Anchors>
 				</FontString>
 			</Layer>
@@ -39,24 +39,32 @@
 		<NormalTexture parentKey="NormalTexture" file="Interface\AddOns\ConsolePort\Textures\Button\Normal" setAllPoints="true"/>
 		<PushedTexture parentKey="Pushed" alpha="0" file="Interface\AddOns\ConsolePort\Textures\Button\Normal" setAllPoints="true" alphaMode="ADD"/>
 		<Frames>
-			<Cooldown name="$parentCooldown" inherits="CooldownFrameTemplate" parentKey="Cooldown">
+			<Cooldown name="$parentCooldown" frameStrata="LOW" inherits="CooldownFrameTemplate" parentKey="Cooldown">
+				<Size x="8" y="8"/>
+				<Scripts>
+				<OnLoad>
+					hooksecurefunc(self, 'SetCooldown', CPAPI.RoundCooldown_OnSetCooldown)
+					self:SetAlpha(0)
+				</OnLoad>
+				<OnShow> 
+					CPAPI.RoundCooldown_OnShowCooldown(self)
+				</OnShow>
+				<OnHide>
+					CPAPI.RoundCooldown_OnHideCooldown(self)
+				</OnHide>
+				</Scripts>
+			</Cooldown> 
+			<Frame name="$parentRCooldown" parentKey="roundcd">
 				<Size x="36" y="36"/>
 				<Anchors>
 					<Anchor point="CENTER" x="0" y="-1"/>
 				</Anchors>
-				<SwipeTexture file="Interface\AddOns\ConsolePort\Textures\Button\Swipe">
-					<Color r="1" g="1" b="1" a="0.8"/>
-				</SwipeTexture>
-				<BlingTexture file="Interface\AddOns\ConsolePort\Textures\Button\Bling">
-					<Color r="1" g="1" b="1" a="0.8"/>
-				</BlingTexture>
 				<Scripts>
-					<OnLoad>
-						self:SetDrawEdge(false);
-						self:SetFrameLevel(10);
-					</OnLoad>
+				<OnLoad>
+					CPAPI.RoundCooldown_OnLoad(self)
+				</OnLoad> 
 				</Scripts>
-			</Cooldown>
+			</Frame>
 			<Frame parentKey="Border" setAllPoints="true">
 				<Layers>
 					<Layer level="BACKGROUND">

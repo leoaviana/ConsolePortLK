@@ -114,6 +114,7 @@ function Events:UNIT_SPELLCAST_FAILED()
 end
 
 function Events:UNIT_ENTERING_VEHICLE(unit)
+	--[==[
 	if unit == 'player' then
 		for i=1, NUM_OVERRIDE_BUTTONS do
 			local button = _G['OverrideActionBarButton'..i]
@@ -122,6 +123,7 @@ function Events:UNIT_ENTERING_VEHICLE(unit)
 			end
 		end
 	end
+	--]==]
 end
 
 function Events:PLAYER_REGEN_ENABLED()
@@ -224,9 +226,8 @@ function Events:ADDON_LOADED(name)
 	self:SetupCursor()
 	self:ToggleUICore()
 	self:LoadUIControl()
-	self:CheckLoadedAddons()
+	self:CheckLoadedAddons() 
 
-	---- fixing a bug i think
 	self:SetupRaidCursor()
 	self:UpdateCameraDriver()
 	self:RunOOC(self.UpdateMouseDriver)

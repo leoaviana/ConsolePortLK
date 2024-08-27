@@ -134,23 +134,7 @@ Help:AddPage('Targeting', 'Gameplay', [[<HTML><BODY>
 	</H1><br/>
 	<H2 align="left">
 		Target Scan Enemy (Hold)
-	</H2>
-	<IMG src="Interface\AddOns\ConsolePortHelp\Textures\TargetScan" align="right" width="384" height="192"/>
-	<p align="left">
-		This targeting binding focuses targets<br/>
-		in a narrow cone and excludes all <br/>
-		enemies that are not directly in front <br/>
-		of you. This is the best targeting<br/>
-		binding for all classes and situations,<br/>
-		because it depends entirely on where <br/>
-		you aim. It's precise and predictable.
-		<br/><br/>
-		Note that this binding will choose a <br/>
-		distant target over a target near you<br/>
-		if the distant target is closer to the<br/>
-		center of where you are looking.
-		<br/><br/><br/>
-	</p>
+	</H2> 
 	<H2 align="left">
 		Target Nearest Enemy
 	</H2>
@@ -289,8 +273,43 @@ Help:AddPage('Unit hotkeys', 'Targeting', [[<HTML><BODY>
 	</p>
 </BODY></HTML>]])
 
+Help:AddPage('Interacting with the world', 'Gameplay', [[<HTML><BODY>
+	<H1 align="center">
+		Interacting with the world
+	</H1><br/>
+	<p align="left">
+		Interacting with the world in the most general sense is only possible through using your mouse cursor. This entails looting, talking to NPCs and clicking world objects
+		such as herbs, ore deposits and other items that you find on the ground.
+		<br/><br/>
+		This article will focus on ways to interact with the world.
+	</p><br/>
+	<H2 align="left">
+		Pressing |TInterface\AddOns\ConsolePort\Controllers\PS4\Icons64\CP_T_R3:24:24:0:0|t or |TInterface\AddOns\ConsolePort\Controllers\XBOX\Icons64\CP_T_R3:24:24:0:0|t
+	</H2>
+	<p align="left">
+		Pressing your right stick is the most straight-forward and applicable way of getting your mouse cursor out for interaction.
+		This is the most commonly used way to interact because of its simplicity, but it requires you to always aim at whatever you want to interact with.<br/>
+		This solution also has ergonomical problems, as most controller sticks are not designed to be pressed as often as you'll need to in this game.
+		If your thumbs feel strained or stiff after or during your game session, consider other options to interact.
+	</p><br/>
+	<H2 align="left">
+		Using the |cFFFF6600Right Mouse Button|r simulation binding
+	</H2>
+	<p align="left">
+		If you prefer to interact with another binding than pressing your right stick, the |cFFFF6600controller|r binding category has a binding that
+		allows any of your input combinations to behave as a right click. Note that this binding only works with world interaction and cannot be used to click anything in your interface.
+	</p><br/>
+	<H2 align="left">
+		Interact With Mouseover
+	</H2>
+	<p align="left">
+		You can also bind an arbitrary combination to |cFFFF6600Interact With Mouseover|r, which is almost the same as a right click. Unlike using a right click simulation,
+		interacting with mouseover will also interact with your current target without aiming at it. This can be useful for interaction with things you're already targeting,
+		without having to aim directly at them a second time. Without a target, this binding behaves exactly as a right click.
+	</p>
+</BODY></HTML>]])
 
-
+--[==[
 
 Help:AddPage('Interacting with the world', 'Gameplay', [[<HTML><BODY>
 	<H1 align="center">
@@ -364,6 +383,54 @@ Help:AddPage('Interact button', 'Interacting with the world', [[<HTML><BODY>
 </BODY></HTML>]])
 
 
+
+Help:AddPage('Tutorial', 'Gameplay', [[<HTML><BODY>
+	<H1 align="center">
+		Interactive tutorial
+	</H1><br/>
+	<H2 align="left">
+		New player experience
+	</H2>
+	<IMG src="Interface\TUTORIALFRAME\UI-TutorialFrame-QuestComplete" align="right" width="200" height="200"/>
+	<p align="left">
+		If you are below level 10, you can enable the |cFFFF6600new player experience|r,<br/>
+		which is an interactive tutorial that guides you through the basics<br/>
+		of controller gameplay as you're questing through your starting area.
+		<br/><br/>
+		This tutorial walks you through interaction with questgivers,<br/>
+		how to loot your dead enemies, and basic controls that you simply<br/>
+		need to know to play the game properly.
+		<br/><br/><br/>
+	</p>
+	<H2 align="left">
+		Show, don't tell
+	</H2>
+	<p align="left">
+		You can find most of the information available in the tutorial<br/>
+		in these help pages, but it's much easier to just follow this guide,<br/>
+		rooted in what you're currently doing on your current quest.
+		<br/><br/><br/>
+	</p>
+	<H2 align="left">
+		Learn controller gameplay on a fresh character
+	</H2>
+	<p align="left">
+		If you're using ConsolePort for the first time, you should start out on a completely new or existing low level character.
+		Playing the game with a controller is essentially like playing a completely new game, both in how it feels and how it handles.
+		<br/><br/>
+		Apart from the time it takes for your muscle memory to form, fully understanding the system along with all its quirks and benefits, will help you excel down the road.
+		<br/><br/>
+		The most efficient way to learn is incrementally. Starting out a new character makes sure that your spell loadout is slim,
+		your adversaries are easy and you can take your time to get acquainted with the system.
+		<br/><br/>
+	</p>
+	<H2 align="center">
+		<a href="run:InterfaceOptionsDisplayPanelResetTutorials:Click() ConsolePortConfig:Hide()">Click here to enable the tutorial.</a>
+	</H2>
+</BODY></HTML>]])
+
+
+--]==]
 
 
 Help:AddPage('Optimization tips', 'Gameplay', [[<HTML><BODY>
@@ -457,52 +524,6 @@ Help:AddPage('Advanced variables', 'Optimization tips', [[<HTML><BODY>
 </BODY></HTML>]])
 
 
-
-
-Help:AddPage('Tutorial', 'Gameplay', [[<HTML><BODY>
-	<H1 align="center">
-		Interactive tutorial
-	</H1><br/>
-	<H2 align="left">
-		New player experience
-	</H2>
-	<IMG src="Interface\TUTORIALFRAME\UI-TutorialFrame-QuestComplete" align="right" width="200" height="200"/>
-	<p align="left">
-		If you are below level 10, you can enable the |cFFFF6600new player experience|r,<br/>
-		which is an interactive tutorial that guides you through the basics<br/>
-		of controller gameplay as you're questing through your starting area.
-		<br/><br/>
-		This tutorial walks you through interaction with questgivers,<br/>
-		how to loot your dead enemies, and basic controls that you simply<br/>
-		need to know to play the game properly.
-		<br/><br/><br/>
-	</p>
-	<H2 align="left">
-		Show, don't tell
-	</H2>
-	<p align="left">
-		You can find most of the information available in the tutorial<br/>
-		in these help pages, but it's much easier to just follow this guide,<br/>
-		rooted in what you're currently doing on your current quest.
-		<br/><br/><br/>
-	</p>
-	<H2 align="left">
-		Learn controller gameplay on a fresh character
-	</H2>
-	<p align="left">
-		If you're using ConsolePort for the first time, you should start out on a completely new or existing low level character.
-		Playing the game with a controller is essentially like playing a completely new game, both in how it feels and how it handles.
-		<br/><br/>
-		Apart from the time it takes for your muscle memory to form, fully understanding the system along with all its quirks and benefits, will help you excel down the road.
-		<br/><br/>
-		The most efficient way to learn is incrementally. Starting out a new character makes sure that your spell loadout is slim,
-		your adversaries are easy and you can take your time to get acquainted with the system.
-		<br/><br/>
-	</p>
-	<H2 align="center">
-		<a href="run:InterfaceOptionsDisplayPanelResetTutorials:Click() ConsolePortConfig:Hide()">Click here to enable the tutorial.</a>
-	</H2>
-</BODY></HTML>]])
 
 
 

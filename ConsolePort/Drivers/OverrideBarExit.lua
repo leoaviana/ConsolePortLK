@@ -1,19 +1,20 @@
-if CPAPI:IsClassicVersion() then return end
 ---------------------------------------------------------------
 -- OverrideBarExit.lua: Exit vehicle/override/possess bar.
 ---------------------------------------------------------------
-local ExitButton = OverrideActionBarLeaveFrameLeaveButton
+local ExitButton = VehicleMenuBarLeaveButton
 ---------------------------------------------------------------
 local _, db = ...
 local OBExit = ConsolePortOBExit
 local EXIT_VEHICLE_BINDING = ('ACTIONBUTTON' .. ((NUM_OVERRIDE_BUTTONS or 6) + 1))
 
 function OBExit:SetExitBinding(name, mod)
-	RegisterStateDriver(self, 'override', '[vehicleui][overridebar][possessbar] true; nil')
-	self:SetAttribute('_onstate-override', ([[
+	RegisterStateDriver(self, 'override', '[novehicleui][bonusbar:5] true; nil')
+	self:SetAttribute('_onstate-override', ([[   
+		print("ass")
 		if newstate then
 			local key = GetBindingKey('%s')
 			local mod = '%s'
+
 			if key then
 				self:SetBinding(true, mod..key, 'VEHICLEEXIT')
 			end

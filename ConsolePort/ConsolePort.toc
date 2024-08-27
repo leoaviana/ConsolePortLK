@@ -1,11 +1,10 @@
 ## Interface: 30300
-## Title: Console Port |cFFFF6600Legacy|r
+## Title: Console Port |cFFFF6600LK|r
 ## Notes: Game controller addon
 ## Version: 1.9.17
 
 ## Author: Sebastian Lindfors
-## X-Website: http://www.consoleport.net
-## X-Feedback: https://discord.gg/AWeHd48
+## Ported-By: Leandro Araujo
 
 ## SavedVariables: ConsolePortSettings, ConsolePortCharacterSettings, ConsolePortUIFrames, ConsolePortUIConfig
 ## SavedVariablesPerCharacter: ConsolePortBindingSet, ConsolePortMouse, ConsolePortUtility
