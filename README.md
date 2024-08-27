@@ -13,8 +13,9 @@ ConsolePort is an interface add-on for World of Warcraft that will give you a ha
 in order to let you play the game on a controller - without inconvenience.
 <br/><br/>
 Consisting of several modules, ConsolePort is a fully-fledged solution to handling all the quirks in a game where gamepad support was not intended,
-including interface navigation, custom-tailored UI elements to assist in gameplay. You will need a controller mapping software to use this AddOn. the original project used a app called WoWmapper which
-already did the mapping automatically, I basically forked and updated [WoWmapper](https://github.com/leoaviana/WoWmapperX) to have a better integration with the Wrath of the Lich King (3.3.5a) client using it's older memory reading functions and increase controller compatibility, however it's not required, you can use any controller mapping software.
+including interface navigation, custom-tailored UI elements to assist in gameplay. You will need a controller mapping software to use this AddOn.
+the original project used a app called WoWmapper which already did the mapping automatically, I basically forked and updated WoWmapper
+to have a better integration with the Wrath of the Lich King (3.3.5a) client using it's older memory reading functions and increase controller compatibility, however it's not required, you can use any controller mapping software.
 
 ## Screenshots:
 
