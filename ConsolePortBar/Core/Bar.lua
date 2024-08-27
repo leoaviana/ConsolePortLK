@@ -193,6 +193,14 @@ function Bar:OnLoad(cfg, benign)
 		RegisterStateDriver(Bar.Pet, 'visibility', '[pet] show; hide')
 	end
 
+	if cfg.hidestance then
+		Bar.Stance:Hide()
+	end
+
+	if cfg.hidetotem then
+		Bar.Totem:Hide()
+	end
+
 	-- Show class tint line
 	if cfg.showline then
 		self.BG:Show()
