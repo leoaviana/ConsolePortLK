@@ -1,6 +1,5 @@
 # ConsolePortLK
 
-## This is not a Wrath of the Lich King Classic AddOn.
 This AddOn is the backported version of ConsolePort 1.9.17 for World of Warcraft - Wrath of the Lich King legacy client (3.3.5a).<br /><br />
 
 I have ported it long time ago and never released, now I'm finally sharing what I was able to do. It may not have complete ConsolePort 1.9.17 functionality parity due to missing functions in the old client Lua API implementation but I believe it is in an usable state, but it has not been extensively tested (raids, instances, battlegrounds)
