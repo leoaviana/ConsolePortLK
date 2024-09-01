@@ -2,6 +2,8 @@
 
 This AddOn is the backported version of ConsolePort 1.9.17 for World of Warcraft - Wrath of the Lich King legacy client (3.3.5a).<br /><br />
 
+Beware that the World of Warcraft 3.3.5a client is old and it's no longer supported, this project has been created only for learning purposes (Lua programming).<br/><br/>
+
 I have ported it long time ago and never released, now I'm finally sharing what I was able to do. It may not have complete ConsolePort 1.9.17 functionality parity due to missing functions in the old client Lua API implementation but I believe it is in an usable state, but it has not been extensively tested (raids, instances, battlegrounds)
 so there might be bugs but I believe I've fixed most if not all game breaking bugs.
 
