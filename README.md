@@ -1,19 +1,26 @@
 # ConsolePortLK
 
-This AddOn is the backported version of ConsolePort 1.9.17 for World of Warcraft - Wrath of the Lich King legacy client (3.3.5a).<br /><br />
+This AddOn is the backported version of [ConsolePort](https://github.com/seblindfors/ConsolePort) 1.9.17 for World of Warcraft - Wrath of the Lich King legacy client (3.3.5a).<br /><br />
 
 Beware that the World of Warcraft 3.3.5a client is old and it's no longer supported, this project has been created only for learning purposes (Lua programming).<br/><br/>
 
 I have ported it long time ago and never released, now I'm finally sharing what I was able to do. It may not have complete ConsolePort 1.9.17 functionality parity due to missing functions in the old client Lua API implementation but I believe it is in an usable state, but it has not been extensively tested (raids, instances, battlegrounds)
 so there might be bugs but I believe I've fixed most if not all game breaking bugs.
 
+## Differences between ConsolePortLK vs ConsolePort 1.9.17
+
+1. ConsolePortLK is a port to work on a World of Warcraft Lua API older than it supports (WoW 3.3.5a 12340).
+2. Implemented workarounds for missing WoW API functions needed for this addon to work.
+
+The original project is here: https://github.com/seblindfors/ConsolePort
+
 <br />
 
-<h2>What is ConsolePort?</h2>
-ConsolePort is an interface add-on for World of Warcraft that will give you a handful of nifty features
+<h2>What is ConsolePorLK?</h2>
+ConsolePortLK is an interface add-on for World of Warcraft that will give you a handful of nifty features
 in order to let you play the game on a controller - without inconvenience.
 <br/><br/>
-Consisting of several modules, ConsolePort is a fully-fledged solution to handling all the quirks in a game where gamepad support was not intended,
+Consisting of several modules, ConsolePortLK is a fully-fledged solution to handling all the quirks in a game where gamepad support was not intended,
 including interface navigation, custom-tailored UI elements to assist in gameplay. You will need a controller mapping software to use this AddOn.
 the original project used a app called WoWmapper which already did the mapping automatically, I basically forked and updated WoWmapper
 to have a better integration with the Wrath of the Lich King (3.3.5a) client using it's older memory reading functions and increase controller compatibility, however it's not required, you can use any controller mapping software.
