@@ -1,7 +1,7 @@
 ## Interface: 30300
-## Title: Console Port |cFFFF6600LK|r
+## Title: Console Port |cff739BD0LK|r
 ## Notes: Game controller addon
-## Version: 1.9.17
+## Version: 1.0.0
 
 ## Author: Sebastian Lindfors
 ## Ported-By: Leandro Araujo

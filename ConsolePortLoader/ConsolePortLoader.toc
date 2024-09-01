@@ -1,5 +1,5 @@
 ## Interface: 30300
-## Title: Console Port |cFFFF6600LK|r |cff69ccf0Loader|r
+## Title: Console Port |cff739BD0LK|r |cff69ccf0Loader|r
 ## Notes: Toggle ConsolePort on/off with your controller. Configured within ConsolePort.
 ## OptionalDeps: ConsolePort
 ## SavedVariablesPerCharacter: ConsolePortLoaderBinding

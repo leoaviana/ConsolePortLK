@@ -1,5 +1,5 @@
 ## Interface: 30300
-## Title: Console Port |cFFFF6600LK|r |cff69ccf0Action Bar|r
+## Title: Console Port |cff739BD0LK|r |cff69ccf0Action Bar|r
 ## Notes: Action bar extension for Console Port
 ## SavedVariables: ConsolePortBarManifest
 ## SavedVariablesPerCharacter: ConsolePortBarSetup
