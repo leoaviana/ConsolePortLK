@@ -14,6 +14,8 @@ so there might be bugs but I believe I've fixed most if not all game breaking bu
 
 The original project is here: https://github.com/seblindfors/ConsolePort
 
+This project is not affiliated in anyway with the original project, please do not ask the author of ConsolePort about issues regarding this version.
+
 <br />
 
 <h2>What is ConsolePorLK?</h2>
