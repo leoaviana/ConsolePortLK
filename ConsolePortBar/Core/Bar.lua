@@ -376,9 +376,8 @@ function Bar:OnLoad(cfg, benign)
     local classicBorders = cfg.classicBorders
 
     -----------------------------------------------------------
-    -- TRIPLE PRESET FIX: Deterministic Initialization
+    -- TRIPLE PRESET: Deterministic Initialization
     -----------------------------------------------------------
-    -- Clear and Pass Triple Flag for focus scaling in ActionButton.lua
     wipe(self.Buttons)
     self:SetAttribute('isTriple', cfg.isTriple)
 
@@ -392,16 +391,12 @@ function Bar:OnLoad(cfg, benign)
     end
 
 	local buttonIndex = 0
-    -- Loop through the layout to ensure every required physical frame is created/promoted
     for id, layoutData in pairs(layout) do
-        -- Extract base binding (e.g., CP_L_LEFT_SHIFT -> CP_L_LEFT)
         local baseID = id:match("^(CP_[^_]+_[^_]+)") or id
         
         -- Get or create the logic wrapper for the binding group
         local wrapper = WrapperLib:Get(baseID) or WrapperLib:Create(self, baseID, layoutData.dir or "down")
 
-        -- 1. IDENTIFY and PROMOTE the specific button frame FIRST
-        -- This ensures Wrapper:SetSize knows which button is being spread out
         local suffix = id:match("CP_[^_]+_[^_]+_(.+)$") or ""
         local modString = (suffix == "SHIFT" and "SHIFT-") or 
                           (suffix == "CTRL" and "CTRL-") or 
@@ -420,15 +415,13 @@ function Bar:OnLoad(cfg, benign)
 			self:SetFrameRef("child"..buttonIndex, button)
         end
 
-        -- 2. Add the wrapper logical group to the registry exactly once
         local exists = false
         for _, existing in ipairs(self.Buttons) do if existing == wrapper then exists = true end end
         if not exists then self.Buttons[#self.Buttons + 1] = wrapper end
 
-        -- 3. Trigger physical placement AFTER the specific button ID is set
         wrapper:SetSize(layoutData.size or 45)
+        wrapper:UpdateOrientation(layoutData.dir or 'down')
 
-        -- 4. Apply logical points to the base wrapper if defined
         if id == baseID and layoutData.point then
             wrapper:SetPoint(unpack(layoutData.point))
         end

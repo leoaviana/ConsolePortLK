@@ -90,36 +90,6 @@ function ConsolePort:LoadSettings()
 	db('calibration', db('calibration') or {})
 
 	-----------------------------------------------------------
-	-- Load exported WoWmapper settings
-	-----------------------------------------------------------
-	if WoWmapper then
-		if ( not WoWmapper.Keys ) or ( not WoWmapper.Settings ) then
-			print('Calibration or settings table missing in WoWmapper export data.')
-		else
-			if db('wmupdate') or ( not db('calibration') ) then
-				db('wmupdate', nil)
-				LoadWoWmapper()
-			else
-				local cs, ws = db.Settings, WoWmapper.Settings
-				local cb, wk = cs.calibration, WoWmapper.Keys
-				for k, v in pairs(cb) do
-					if wk[k] ~= v then
-						NEWCALIBRATION = true
-						break
-					end
-				end
-				for k, v in pairs(ws) do
-					if k ~= 'type' and cs[k] ~= v then
-						NEWCALIBRATION = true
-						break
-					end
-				end
-			end
-			selectController = false
-		end
-	end
-
-	-----------------------------------------------------------
 	-- Load controller splash if no preference exists
 	-----------------------------------------------------------
 	if selectController then

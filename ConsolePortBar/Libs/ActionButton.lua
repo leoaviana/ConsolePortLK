@@ -977,13 +977,28 @@ function Generic:SetClicks(mouseover)
 end
 
 function Generic:Hover(isEnabled)
-	self.forceShow = isEnabled
-	if self.isMainButton then return end
-	if isEnabled then
-		self:FadeIn(1)
-	else
-		self:FadeOut(0)
-	end
+    self.forceShow = isEnabled
+    if self.isMainButton then 
+        local wrapper = ab.libs.registry[self.plainID]
+        if wrapper then
+            for mod, button in pairs(wrapper.Buttons) do
+                if mod ~= '' then
+                    button.forceShow = isEnabled
+                    if isEnabled then
+                        button:FadeIn(1)
+                    else
+                        button:FadeOut(0)
+                    end
+                end
+            end
+        end
+        return
+    end
+    if isEnabled then
+        self:FadeIn(1)
+    else
+        self:FadeOut(0)
+    end
 end
 
 function Generic:SetShowGrid(isEnabled)

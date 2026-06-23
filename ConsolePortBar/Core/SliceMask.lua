@@ -253,7 +253,7 @@ local NUM_SLICES = 16
 local BUTTON_SIZE = 38
 
 local function BuildSliceContainer(parent, slices, direction, originalSize) 
-    local targetSize = BUTTON_SIZE 
+    local targetSize = (originalSize - 8) or BUTTON_SIZE 
     local isVertical = (direction == 'left' or direction == 'right') 
     local sliceSize  = targetSize / NUM_SLICES
 
@@ -322,7 +322,7 @@ end
 function SliceMask:OnIconUpdated(button)
     if button._slicePending then
         local size = button.icon:GetWidth()
-        if not size or size == 0 then size = FALLBACK_SIZE end
+        if not size or size == 0 then size = BUTTON_SIZE end
         local pending = button._slicePending
         button._slicePending = nil
         if button._sliceMaskContainer then

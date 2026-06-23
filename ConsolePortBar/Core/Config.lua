@@ -555,7 +555,71 @@ function WindowMixin:CreateLayoutModule()
 			b2:SetPoint('CENTER', frame, 'CENTER', 16, 0)
 		end
 		layout:AddButton(frame)
+	end 
+	
+	layout:CreateHeader({val = 'Bar Scale:', x = 0, data = 'Text', type = 'FontString', setup = {nil, 'ARTWORK', 'FriendsFont_Large'}})
+
+	local scaleRow = CreateFrame('Frame', nil, layout.Child)
+	scaleRow:SetSize(200, 46)
+
+	local scaleBox = CPAPI.CreateFrame('EditBox', '$parentScaleBox', scaleRow)
+	scaleBox:SetAutoFocus(false)
+	scaleBox:SetFont(CombatLogFont:GetFont())
+	scaleBox:SetBackdrop(db.Atlas.Backdrops.FullSmall)
+	scaleBox:SetJustifyH('CENTER')
+	scaleBox:SetSize(75, 24)
+	scaleBox:SetPoint('CENTER', scaleRow, 'CENTER', 0, 0)
+
+	local minusBtn = db.Atlas.GetFutureButton('$parentMinus', scaleRow, nil, nil, 36, 36, true)
+	minusBtn:SetPoint('RIGHT', scaleBox, 'LEFT', -8, 0)
+	minusBtn.Label:SetText('-')
+
+	local plusBtn = db.Atlas.GetFutureButton('$parentPlus', scaleRow, nil, nil, 36, 36, true)
+	plusBtn:SetPoint('LEFT', scaleBox, 'RIGHT', 8, 0)
+	plusBtn.Label:SetText('+')
+
+	local SCALE_MIN, SCALE_MAX, SCALE_STEP = 0.1, (BAR_MAX_SCALE or 1.6), 0.1
+
+	local function RefreshScaleDisplay()
+		scaleBox:SetText(string.format('%.1f', ab.cfg.scale or 1))
+		scaleBox:SetTextColor(1, 1, 1)
 	end
+
+	local function ApplyScale(value)
+		value = math.floor((value / SCALE_STEP) + 0.5) * SCALE_STEP
+		value = math.max(SCALE_MIN, math.min(value, SCALE_MAX))
+		ab.cfg.scale = value
+		RefreshScaleDisplay()
+		Bar:OnLoad(ab.cfg, true)
+	end
+
+	minusBtn:SetScript('OnClick', function()
+		ApplyScale((ab.cfg.scale or 1) - SCALE_STEP)
+	end)
+
+	plusBtn:SetScript('OnClick', function()
+		ApplyScale((ab.cfg.scale or 1) + SCALE_STEP)
+	end)
+
+	scaleBox:SetScript('OnEnterPressed', function(self)
+		local number = tonumber(self:GetText())
+		if number then
+			ApplyScale(number)
+		else
+			RefreshScaleDisplay()
+		end
+		self:ClearFocus()
+	end)
+	scaleBox:SetScript('OnEscapePressed', function(self)
+		RefreshScaleDisplay()
+		self:ClearFocus()
+	end)
+	scaleBox:SetScript('OnShow', RefreshScaleDisplay)
+
+	RefreshScaleDisplay()
+	layout:AddButton(scaleRow, 12, 0)
+	layout.ScaleRow = scaleRow
+	layout.RefreshScaleDisplay = RefreshScaleDisplay
 
 	-- Color header
 	layout:CreateHeader({val = 'Colors:', x = 0, data = 'Text', type = 'FontString', setup = {nil, 'ARTWORK', 'FriendsFont_Large'}})

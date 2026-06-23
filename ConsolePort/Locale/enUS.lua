@@ -135,6 +135,7 @@ TUTORIAL = {
 		AUTOSELL 			= 'Automatically sell junk',
 		DISABLEBINDHELP 	= 'Disable action placement assistance',
 		ENABLEPIXELBRIDGE 	= 'Enable Pixel Bridge (experimental)',
+		ENABLENAMEPLATES	= 'Enable Nameplates (requires reload)',
 		FIXES 				= 'Fixes',
 		DISABLEHOLDREPEAT 	= 'One-to-one interface cursor',
 		SKIPCALIBRATION		= 'Disable calibration check on login',

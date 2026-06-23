@@ -228,6 +228,15 @@ function WrapperMixin:SetSize(new)
             -- Force absolute coordinates from Lookup.lua
             button:SetPoint(unpack(layoutData.point))
             button:SetSize(layoutData.size or new, layoutData.size or new)
+
+			if button.icon then
+				local useSquare = preset and preset.useSquareButtons
+				local ratio = useSquare and (40/45) or 1
+				local iSize = (layoutData.size or new) * ratio
+				button.icon:ClearAllPoints()
+				button.icon:SetSize(iSize, iSize)
+				button.icon:SetPoint('CENTER', 0, 0)
+			end
             
             button.isMainButton = true 
             button:Show()
@@ -250,24 +259,28 @@ function WrapperMixin:SetSize(new)
             end
             
             local b, t, o
+			local WING_SPREAD_DIAG = 0.6   -- affects SHIFT-/CTRL- (corner wings, uses `ofs`)
+			local WING_SPREAD_AXIS = 0.4 
             if mod == '' then
                 b, t = new, new
                 o = new * (82 / 64)
                 if button.shadow then button.shadow:SetSize(o, o) end
             else 
-                b = new * (46 / 64) 
-                t = new * (58 / 64) 
-                if mod == 'CTRL-SHIFT-' then t = t * 0.9 end
-                o = (((mod == 'CTRL-SHIFT-') and 21 or 38) / 64)
-                
-                local pT = mods[mod] and mods[mod][button.orientation]
-                if pT then
-                    local p, rel, x, y = unpack(pT)
-                    button:ClearAllPoints()
-                    button:SetPoint(p, main, rel, x * o, y * o)
-                    button:Show()
-                end
-            end
+				local scale = new / size
+				b = new * (46 / 64) 
+				t = new * (58 / 64) 
+				if mod == 'CTRL-SHIFT-' then t = t * 0.9 end
+				
+				local spread = (mod == 'CTRL-SHIFT-') and WING_SPREAD_AXIS or WING_SPREAD_DIAG
+				
+				local pT = mods[mod] and mods[mod][button.orientation]
+				if pT then
+					local p, rel, x, y = unpack(pT)
+					button:ClearAllPoints()
+					button:SetPoint(p, main, rel, x * scale * spread, y * scale * spread)
+					button:Show()
+				end
+			end
             
             for _, parentKey in pairs(adjustTextures) do
                 local tex = button[parentKey]
@@ -278,6 +291,15 @@ function WrapperMixin:SetSize(new)
                 end
             end
             button:SetSize(b, b)
+
+			if button.icon then
+				local useSquare = preset and preset.useSquareButtons
+				local ratio = useSquare and (40/45) or 1
+				local iSize = b * ratio
+				button.icon:ClearAllPoints()
+				button.icon:SetSize(iSize, iSize)
+				button.icon:SetPoint('CENTER', 0, 0)
+			end
         end
         
         -- Final texture sync
@@ -368,130 +390,116 @@ function WrapperMixin:SetClassicBorders(enabled)
     local useSquare = ab.cfg and ab.cfg.useSquareButtons
     local isTriple = ab.cfg and ab.cfg.isTriple
     local TEX = [[Interface\AddOns\ConsolePortBar\Textures\Button\%s]]
-    
+
     for mod, button in pairs(self.Buttons) do
         button.isSquareMode = useSquare
-        
-        -- Get the internal engine objects
+
         local nt = button:GetNormalTexture()
         local pt = button:GetPushedTexture()
         local ht = button:GetHighlightTexture()
         local ct = button:GetCheckedTexture()
+		
+        local bw = button:GetWidth()
 
         if useSquare then
-			-- BLANK ARTIFACTS
-			if button.Shadow then button.Shadow:SetTexture(nil) end
-			if button.Mask then button.Mask:Hide() end
-			
-			-- APPLY RETAIL DIMENSIONS TO TEXTURES (52x51 for borders)
-			button.NormalTexture:ClearAllPoints()
-			button.NormalTexture:SetPoint("CENTER", button, "CENTER", 4, -2)
-			button.NormalTexture:SetTexture(TEX:format("SquareNormal"))
-			button.NormalTexture:SetTexCoord(0, 1, 0, 1) 
-			button.NormalTexture:SetSize(52, 51)
+            if button.Shadow then button.Shadow:SetTexture(nil) end
+            if button.Mask then button.Mask:Hide() end
 
-			button.PushedTexture:ClearAllPoints()
-			button.PushedTexture:SetPoint("CENTER", button, "CENTER", 4, -2)
-			button.PushedTexture:SetTexture(isTriple and TEX:format("SquareNormal") or TEX:format("SquarePushed"))
-			button.PushedTexture:SetSize(52, 51)			
+            button.NormalTexture:ClearAllPoints()
+            button.NormalTexture:SetPoint("CENTER", button, "CENTER", 4, -2)
+            button.NormalTexture:SetTexture(TEX:format("SquareNormal"))
+            button.NormalTexture:SetTexCoord(0, 1, 0, 1)
+            button.NormalTexture:SetSize(bw * (52/45), bw * (51/45))
 
-			button.HighlightTexture:ClearAllPoints() 
-			button.HighlightTexture:SetSize(46, 45) 
-			button.HighlightTexture:SetPoint("CENTER", button, "CENTER", 1, 0)
-			button.HighlightTexture:SetTexture(TEX:format("SquareHilite"))
-			button.HighlightTexture:SetTexCoord(0, 1, 0, 1)
+            button.PushedTexture:ClearAllPoints()
+            button.PushedTexture:SetPoint("CENTER", button, "CENTER", 4, -2)
+            button.PushedTexture:SetTexture(isTriple and TEX:format("SquareNormal") or TEX:format("SquarePushed"))
+            button.PushedTexture:SetSize(bw * (52/45), bw * (51/45))
 
-			button.CheckedTexture:ClearAllPoints()
-			button.CheckedTexture:SetSize(46, 45) 
-			button.CheckedTexture:SetPoint("CENTER", button, "CENTER", 1, 0)
-			button.CheckedTexture:SetTexture(not isTriple and TEX:format("SquareHilite") or nil)
-			
-			-- ICON (The icon should be exactly 45x45 to fill the button)
-			button.icon:ClearAllPoints()
-			button.icon:SetSize(40, 40)
-			button.icon:SetPoint("CENTER", button, "CENTER", 0, 0)
-			
-			button.emptyIcon = [[Interface\AddOns\ConsolePortBar\Textures\ability-empty2]]
-			
-			-- COOLDOWN (Match the Retail paddings: 3px in, 2px down)
-			button.cooldown:SetAlpha(1)
-			button.cooldown:Show()
-			button.cooldown:ClearAllPoints()
-			button.cooldown:SetAllPoints(button) -- Ensure it covers the square icon
-			button.cooldown:SetFrameLevel(button:GetFrameLevel() + 5)
-			button.cooldown:SetFrameStrata("MEDIUM")
+            button.HighlightTexture:ClearAllPoints()
+            button.HighlightTexture:SetSize(bw * (46/45), bw * (45/45))
+            button.HighlightTexture:SetPoint("CENTER", button, "CENTER", 1, 0)
+            button.HighlightTexture:SetTexture(TEX:format("SquareHilite"))
+            button.HighlightTexture:SetTexCoord(0, 1, 0, 1)
 
-			-- 2. KILL THE ROUND OBJECTS
-			if button.roundcd then
-				button.roundcd:Hide()
-				button.roundcd:SetAlpha(0)
-				if button.roundcd.spinner then
-					button.roundcd.spinner:Hide()
-					button.roundcd.spinner:SetAlpha(0)
-				end
-			end
+            button.CheckedTexture:ClearAllPoints()
+            button.CheckedTexture:SetSize(bw * (46/45), bw * (45/45))
+            button.CheckedTexture:SetPoint("CENTER", button, "CENTER", 1, 0)
+            button.CheckedTexture:SetTexture(not isTriple and TEX:format("SquareHilite") or nil)
 
-			local shadow = button.shadow or (mod == '' and self[''].shadow)
-    		if shadow then 
-        		shadow:Hide() 
-        		shadow:SetAlpha(0)
-    		end
+            local iconSize = bw * (40/45)
+            button.icon:ClearAllPoints()
+            button.icon:SetSize(iconSize, iconSize)
+            button.icon:SetPoint("CENTER", button, "CENTER", 0, 0)
+
+            button.emptyIcon = [[Interface\AddOns\ConsolePortBar\Textures\ability-empty2]]
+
+            button.cooldown:SetAlpha(1)
+            button.cooldown:Show()
+            button.cooldown:ClearAllPoints()
+            button.cooldown:SetAllPoints(button)
+            button.cooldown:SetFrameLevel(button:GetFrameLevel() + 5)
+            button.cooldown:SetFrameStrata("MEDIUM")
+
+            if button.roundcd then
+                button.roundcd:Hide()
+                button.roundcd:SetAlpha(0)
+                if button.roundcd.spinner then
+                    button.roundcd.spinner:Hide()
+                    button.roundcd.spinner:SetAlpha(0)
+                end
+            end
+
+            local shadow = button.shadow or (mod == '' and self[''].shadow)
+            if shadow then
+                shadow:Hide()
+                shadow:SetAlpha(0)
+            end
         else
-            -- 1. RESTORE ORIGINAL BUTTON SIZE (Standard 64x64)
-            button:SetSize(64, 64)
-
-            -- 2. RESTORE ROUND ASSETS
             local isMain = (mod == '')
             local theme = isMain and "BigNormal" or (mod == 'CTRL-SHIFT-' and "M3" or "M1")
             local hilite = isMain and "BigHilite" or (mod == 'CTRL-SHIFT-' and "M3Hilite" or "M1Hilite")
 
-            -- Normal/Pushed logic
             nt:SetTexture(TEX:format(theme))
-            nt:SetSize(64, 64) -- Or use your tSize variable
+            nt:SetSize(bw, bw)
             nt:ClearAllPoints()
             nt:SetPoint("CENTER", button, "CENTER", 0, 0)
             nt:SetTexCoord(0, 1, 0, 1)
 
             pt:SetTexture(TEX:format(hilite))
-            pt:SetSize(64, 64)
+            pt:SetSize(bw, bw)
             pt:ClearAllPoints()
             pt:SetPoint("CENTER", button, "CENTER", 0, 0)
 
-            -- Highlight/Checked logic
             ht:SetTexture(TEX:format(hilite))
-            ht:SetSize(64, 64)
+            ht:SetSize(bw, bw)
             ht:ClearAllPoints()
             ht:SetPoint("CENTER", button, "CENTER", 0, 0)
 
             ct:SetTexture(TEX:format(hilite))
-            ct:SetSize(64, 64)
+            ct:SetSize(bw, bw)
             ct:ClearAllPoints()
             ct:SetPoint("CENTER", button, "CENTER", 0, 0)
 
-			-- ICON (The icon should be exactly 45x45 to fill the button)
-			button.icon:ClearAllPoints()
-			button.icon:SetSize(64, 64)
-			button.icon:SetPoint("CENTER", button, "CENTER", 0, 0)
+            local iconSize = bw
+            button.icon:ClearAllPoints()
+            button.icon:SetSize(iconSize, iconSize)
+            button.icon:SetPoint("CENTER", button, "CENTER", 0, 0)
 
-			button.emptyIcon = [[Interface\AddOns\ConsolePortBar\Textures\ability-empty]]
+            button.emptyIcon = [[Interface\AddOns\ConsolePortBar\Textures\ability-empty]]
 
-            -- 3. RESTORE ROUND ARTIFACTS
-            if button.Shadow then 
-                button.Shadow:SetTexture([[Interface\AddOns\ConsolePort\Textures\Button\Shadow]]) 
-                --button.Shadow:Show() 
+            if button.Shadow then
+                button.Shadow:SetTexture([[Interface\AddOns\ConsolePort\Textures\Button\Shadow]])
             end
-            --if button.Mask then button.Mask:Show() end
-            
+
             local shadowFrame = button.shadow or (mod == '' and self[''].shadow)
-            if shadowFrame then 
-                shadowFrame:Show() 
-                shadowFrame:SetAlpha(0.3) -- Original XML alpha
+            if shadowFrame then
+                shadowFrame:Show()
+                shadowFrame:SetAlpha(0.3)
             end
 
-            -- 4. RESTORE ROUND COOLDOWN (Handover)
-            -- Hide the standard Blizzard clock and bring back the spinner
             button.cooldown:SetAlpha(0)
-            button.cooldown:SetFrameStrata("LOW") -- Return to background
+            button.cooldown:SetFrameStrata("LOW")
 
             if button.roundcd then
                 button.roundcd:Show()
@@ -502,7 +510,6 @@ function WrapperMixin:SetClassicBorders(enabled)
                 end
             end
 
-            -- 5. RESTORE WING COORDINATES (For Modifiers)
             if not isMain then
                 local orientation = button.orientation or "down"
                 local coords = modcoords[mod] and modcoords[mod][orientation]
@@ -512,11 +519,10 @@ function WrapperMixin:SetClassicBorders(enabled)
                 end
             end
         end
-        
+
         button:UpdateAction(true)
     end
 end
-
 function WrapperMixin:SetBorderColor(r, g, b, a)
 	for mod, button in pairs(self.Buttons) do
 		button.NormalTexture:SetVertexColor(r, g, b, a)

@@ -1097,6 +1097,9 @@ end
 
 evtFrame:SetScript('OnEvent', function(self, event)
     if event == 'PLAYER_ENTERING_WORLD' then
+        if db('enableNameplates') == false then
+            return
+        end
         if HAS_NAMEPLATE_API then InitEventTracking()
         else                       InitScanTracking() end
         tickFrame:Show()

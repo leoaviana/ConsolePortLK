@@ -774,6 +774,7 @@ local cvars = { -- value = default
     disableHints            = {false    ; 'Disable hint display on how certain things work'};
     disableSmartBind        = {false    ; 'Disable action/bag placement helper'};
     enablePixelBridge       = {false    ; 'Enable Pixel Bridge (experimental)'};
+    enableNameplates        = {false    ; 'Enable Nameplates (requires reload)'};
     disableSmartMouse       = {false    ; 'Disable smart cursor show/hide'};
     disableStickMouse       = {false    ; 'Disable override bindings for stick buttons'};
     doubleModTap            = {true     ; 'Toggle mouselook by double tapping a modifier'};
