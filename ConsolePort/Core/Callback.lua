@@ -10,11 +10,14 @@ local interval, time, scripts = 0.1, 0, {}
 
 local function OnUpdate(self, elapsed)
 	time = time + elapsed
-	while time > interval do
-		for snippet, snippetData in pairs(scripts) do
-			snippet(self, unpack(snippetData))
-		end
-		time = time - interval
+	if time < interval then return end
+	-- Drop any backlog instead of catching up on it. These snippets poll
+	-- until their work becomes possible, so running them more than once
+	-- per frame achieves nothing -- and after a stall the catch-up would
+	-- run them once per skipped interval, turning one hitch into several.
+	time = 0
+	for snippet, snippetData in pairs(scripts) do
+		snippet(self, unpack(snippetData))
 	end
 end
 
