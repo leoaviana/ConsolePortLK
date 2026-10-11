@@ -553,14 +553,14 @@ function Generic:SetState(state, kind, action)
 
 	self.state_types[state] = kind
 	self.state_actions[state] = action
+	self:SetAttribute(format("labtype-%s", state), kind)
+	self:SetAttribute(format("labaction-%s", state), action)
 	self:UpdateState(state)
 end
 
 function Generic:UpdateState(state)
 	if not state then state = self:GetAttribute("state") end
 	state = tostring(state)
-	self:SetAttribute(format("labtype-%s", state), self.state_types[state])
-	self:SetAttribute(format("labaction-%s", state), self.state_actions[state])
 	if state ~= tostring(self:GetAttribute("state")) then return end
 	if self.header then
 		self.header:SetFrameRef("updateButton", self)
@@ -577,6 +577,14 @@ end
 function Generic:GetAction(state)
 	if not state then state = self:GetAttribute("state") end
 	state = tostring(state)
+	-- Resolve the requested modifier exactly as the held main button does.
+	-- Display caches and a nested satellite's own page can lag the bar header.
+	local kind = self:GetAttribute(format("labtype-%s", state))
+	local action = self:GetAttribute(format("labaction-%s", state))
+	if kind == "action" and type(action) == "number" then
+		local page = (self.header and self.header:GetAttribute("actionpage")) or self:GetAttribute("actionpage") or 1
+		return kind, action <= NUM_ACTIONBAR_BUTTONS and action + ((page - 1) * NUM_ACTIONBAR_BUTTONS) or action
+	end
 	return self.state_types[state] or "empty", self.state_actions[state]
 end
 
@@ -645,6 +653,7 @@ local function PickupAny(kind, target, detail, ...)
 end
 
 function Generic:OnEnter() 
+	self:UpdateAction()
 	self.header:FadeIn(self.header:GetAlpha())
 	self:FadeIn()
     -- v109: square satellite hover is a live visual state, independent of the
@@ -789,6 +798,7 @@ end
 function InitializeEventHandler()
 	lib.eventFrame:SetScript("OnEvent", OnEvent)
 	lib.eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+	lib.eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 	lib.eventFrame:RegisterEvent("ACTIONBAR_SHOWGRID")
 	lib.eventFrame:RegisterEvent("ACTIONBAR_HIDEGRID")
 	lib.eventFrame:RegisterEvent("ACTIONBAR_PAGE_CHANGED")
@@ -825,7 +835,10 @@ function InitializeEventHandler()
 end
 
 function OnEvent(frame, event, arg1, ...)
-	if (event == "UNIT_INVENTORY_CHANGED" and arg1 == "player") or event == "LEARNED_SPELL_IN_TAB" then
+	if event == "PLAYER_REGEN_ENABLED" then
+		-- Reconcile satellite layering once protected frame changes are allowed.
+		for button in next, ButtonRegistry do UpdateCooldown(button) end
+	elseif (event == "UNIT_INVENTORY_CHANGED" and arg1 == "player") or event == "LEARNED_SPELL_IN_TAB" then
 		local tooltipOwner = GameTooltip:GetOwner()
 		if ButtonRegistry[tooltipOwner] then
 			tooltipOwner:SetTooltip()
@@ -1204,14 +1217,6 @@ function Generic:UpdateAction(force)
 
 	local type, action = self:GetAction()
 	if force or (type ~= self._state_type) or (action ~= self._state_action) then
-		-- Preserve the spell behind the outgoing action slot across stance/stealth
-		-- page changes. On the first Prowl break after login, the secure page can
-		-- change before the cooldown event is read; retaining this identity lets
-		-- GetCooldown query the spell directly instead of losing that first CD.
-		if self._state_type == 'action' and self._state_action then
-			local oldType, oldID = GetActionInfo(self._state_action)
-			if oldType == 'spell' and oldID then self._previousSpellID = oldID end
-		end
 		-- type changed, update the metatable
 		if force or (self._state_type ~= type) then
 			local meta = type_meta_map[type] or type_meta_map.empty
@@ -1224,6 +1229,12 @@ function Generic:UpdateAction(force)
 end
 
 function Update(self)
+	-- Event refreshes also need to reconcile action identity before reading
+	-- textures, tooltips, range or cooldowns from the display cache.
+	local kind, action = self:GetAction()
+	if kind == "action" and self._state_type == "action" then
+		self._state_action = action
+	end
 	if self:HasAction() then
 		ActiveButtons[self] = true
 		if self._state_type == "action" then
@@ -1408,10 +1419,6 @@ function UpdateCooldown(self)
 		local kind, action = self:GetAction(fixedMod)
 		if kind == 'action' and action then
 			local slot = action
-			local page = self:GetAttribute('actionpage')
-			if type(slot) == 'number' and page and slot <= NUM_ACTIONBAR_BUTTONS then
-				slot = slot + ((page - 1) * NUM_ACTIONBAR_BUTTONS)
-			end
 			start, duration, enable = GetActionCooldown(slot)
 			if not duration or duration <= 0 then
 				local at, id = GetActionInfo(slot)
@@ -1432,10 +1439,6 @@ function UpdateCooldown(self)
 			local kind, action = self:GetAction('')
 			if kind == 'action' and action then
 				local slot = action
-				local page = self:GetAttribute('actionpage')
-				if type(slot) == 'number' and page and slot <= NUM_ACTIONBAR_BUTTONS then
-					slot = slot + ((page - 1) * NUM_ACTIONBAR_BUTTONS)
-				end
 				start, duration, enable = GetActionCooldown(slot)
 				if not duration or duration <= 0 then
 					local at, id = GetActionInfo(slot)
@@ -1502,7 +1505,10 @@ function UpdateCooldown(self)
 	-- A second geometry pass here changed edge-anchored overlap and broke art.
 	if self.isSquareMode and self.mod and self.mod ~= '' then
 		local primary = self:GetParent()
-		if primary and primary.GetFrameLevel then
+		-- Layout setup already establishes the approved overlap order. Cooldown
+		-- events also fire in combat, when these action buttons are protected.
+		-- Keep their existing layers until PLAYER_REGEN_ENABLED reconciles them.
+		if not InCombatLockdown() and primary and primary.GetFrameLevel then
 			local baseLevel = (primary:GetFrameLevel() or 1) + 2
 			-- v113: LT+RT is deliberately topmost. LT and RT remain above the
 			-- main button but below the combined satellite at their shared edges.
@@ -1544,6 +1550,7 @@ end
 
 function lib:RefreshCooldowns()
 	for button in next, ButtonRegistry do
+		button:UpdateAction()
 		UpdateCooldown(button)
 		-- An explicit settings change must be able to remove cooldown-forced
 		-- satellite visibility immediately. Generic FadeOut intentionally honors
@@ -1668,15 +1675,8 @@ Action.GetActionText           = function(self) return GetActionText(self._state
 Action.GetTexture              = function(self) return GetActionTexture(self._state_action) end
 Action.GetCount                = function(self) return GetActionCount(self._state_action) end
 Action.GetCooldown             = function(self)
-	-- Do not trust only the insecure _state_action cache here. A stance/stealth
-	-- page can change while a modifier layer is held, and the secure button may
-	-- already have the correct base action/page before that cache is refreshed.
-	-- Build the live action slot from the button's secure action + actionpage.
-	local slot = self:GetAttribute('action') or self._state_action
-	local page = self:GetAttribute('actionpage')
-	if slot and page and type(slot) == 'number' and slot <= NUM_ACTIONBAR_BUTTONS then
-		slot = slot + ((page - 1) * NUM_ACTIONBAR_BUTTONS)
-	end
+	-- Use the same resolved modifier slot as the main bar and hover display.
+	local _, slot = self:GetAction()
 	local start, duration, enable = GetActionCooldown(slot)
 	if not duration or duration <= 0 then
 		local actionType, id = GetActionInfo(slot)
@@ -1686,13 +1686,9 @@ Action.GetCooldown             = function(self)
 				return spellStart, spellDuration, spellEnable
 			end
 		end
-		if self._previousSpellID then
-			local spellStart, spellDuration, spellEnable = GetSpellCooldown(self._previousSpellID)
-			if spellDuration and spellDuration > 0 then
-				return spellStart, spellDuration, spellEnable
-			end
-			self._previousSpellID = nil
-		end
+		-- Fall back only to the spell currently assigned to this page. An outgoing
+		-- humanoid spell must not keep a Cat/Bear satellite alive when that slot
+		-- now contains a different ability (or is empty).
 	end
 	return start, duration, enable
 end
