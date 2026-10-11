@@ -1,5 +1,5 @@
 ## Interface: 30300
-## Version: 1.0.2
+## Version: 1.0.3
 ## Title: Console Port |cff739BD0LK|r |cff69ccf0Loader|r
 ## Notes: Toggle ConsolePort on/off with your controller. Configured within ConsolePort.
 ## OptionalDeps: ConsolePort

@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.0.3 — 2026-10-11
+
+- Fix modifier satellites retaining humanoid abilities after a druid form change or login in animal form. Hover icons, tooltips, and cooldowns now resolve from the shared action-bar page used by the main bar.
+- Remove outgoing-spell cooldown fallback so a humanoid cooldown does not keep a satellite visible when its current slot contains a different ability or is empty.
+- Prevent protected satellite layering changes during combat; reconcile layering after combat while preserving cooldown text and swipes.
+- Keep existing saved settings, bindings, and layout geometry. The maintainer confirmed the form-satellite and combat fixes in game.
+
 ## 1.0.2 — 2026-10-06
 
 - Correct callback order insertion and resolve owners registered after the first hook.
