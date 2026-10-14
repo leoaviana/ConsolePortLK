@@ -27,7 +27,11 @@ db.PLUGINCHECKS.IsMerchantNode = {}
 -- Popup functions 
 ---------------------------------------------------------------
 local function LoadDefaultBindings()
+	-- v104: setup completion is a special Bindings launch. It must highlight
+	-- Bindings, but must not consume the first ordinary Settings open this login.
+	CPSetupOpeningBindings = true
 	ConsolePortOldConfig:OpenCategory('Binds')
+	CPSetupOpeningBindings = nil
 	ConsolePortOldConfigContainerBinds:Default()
 	ConsolePort:CheckLoadedSettings()
 end

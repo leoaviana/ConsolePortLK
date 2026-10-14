@@ -81,7 +81,7 @@ db.Controllers.SWITCH = {
 		['CP_R_DOWN'] = {
 			['']		 	= 'JUMP',
 			['SHIFT-'] 		= 'ACTIONBUTTON9',
-			['CTRL-']  		= 'EXTRAACTIONBUTTON1',
+			['CTRL-']  		= 'MULTIACTIONBAR4BUTTON5',
 			['CTRL-SHIFT-'] = 'CLICK ConsolePortUtilityToggle:LeftButton',
 		},
 		['CP_R_LEFT'] = {

@@ -543,6 +543,13 @@ function Field:GetButtons() return pairs(self.Buttons or {}) end
 
 function WindowMixin:OnHide()
 	ClearFields()
+	-- v145: populating the Advanced browser touches a very large snapshot of the
+	-- live Action Bar data. Re-normalize the current bar presentation when the
+	-- panel closes so square-family texture geometry cannot remain contaminated
+	-- until the next ReloadUI.
+	if ConsolePortBar and ConsolePortBar.OnLoad and ConsolePortBarSetup then
+		ConsolePortBar:OnLoad(ConsolePortBarSetup, true)
+	end
 end
 
 function WindowMixin:OnShow()

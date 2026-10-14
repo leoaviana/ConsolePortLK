@@ -55,7 +55,7 @@ function ConsolePort:UpdateFrameTracker()
 end
 
 function ConsolePort:AddFrameTracker(frame)
-	frameTrackers[frame] = true
+	if type(frame) == 'string' then frameTrackers[frame] = true end
 end
 
 function ConsolePort:IsFrameTracked(frame)
@@ -80,8 +80,14 @@ local VALID_BUTTON_TYPE = {
 
 -- Helpers:
 local function GetContainer(this)
-	local parent = this:GetParent()
-	return (not parent or parent == UIParent) and this or GetContainer(parent)
+	local visited = {}
+	while this and not visited[this] do
+		visited[this] = true
+		local parent = this:GetParent()
+		if not parent or parent == UIParent then return this end
+		this = parent
+	end
+	return this
 end
 
 local function ValidateActionID(this)
@@ -105,15 +111,23 @@ local function CacheActionBar(cache, this, action)
 end
 
 -- Scanner:
-local function FindActionButtons(callback, cache, this, sibling, ...)
-	if sibling then FindActionButtons(callback, cache, sibling, ...) end
-	if not IsFrameWidget(this) or IGNORE_FRAMES[this] then return cache end
-	-------------------------------------
-	local action = ValidateActionID(this)
-	if IsActionButton(this, action) and callback(cache, this, action) then
-		return cache
+local function FindActionButtons(callback, cache, ...)
+	-- Avoid recursive sibling varargs: large option panels can contain thousands
+	-- of widgets, making the old traversal use quadratic memory and deep stacks.
+	local pending, visited = {...}, {}
+	while #pending > 0 do
+		local this = pending[#pending]
+		pending[#pending] = nil
+		if IsFrameWidget(this) and not visited[this] and not IGNORE_FRAMES[this] then
+			visited[this] = true
+			local action = ValidateActionID(this)
+			local stop = IsActionButton(this, action) and callback(cache, this, action)
+			if not stop then
+				local children = {this:GetChildren()}
+				for i = 1, #children do pending[#pending + 1] = children[i] end
+			end
+		end
 	end
-	FindActionButtons(callback, cache, this:GetChildren())
 	return cache
 end
 

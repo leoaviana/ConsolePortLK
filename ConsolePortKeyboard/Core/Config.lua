@@ -93,7 +93,8 @@ local function ConfigureConfig(Config, self)
 	Config.Fields = {}
 
 	local function UpdateField(self, layout)
-		self:SetText(layout[self.Index[1]][self.Index[2]][self.Index[3]])
+		local value = layout[self.Index[1]][self.Index[2]][self.Index[3]]
+		self:SetText(Language.Markers[value] or value)
 		self:SetCursorPosition(0)
 	end
 
@@ -125,7 +126,7 @@ local function ConfigureConfig(Config, self)
 				Field:SetAutoFocus(false)
 				Field:SetFont("Interface\\AddOns\\ConsolePortKeyboard\\Fonts\\arial.TTF", 14)
 				Field:SetTextColor(red, green, blue, 1)
-				Field:SetText(string)
+				Field:SetText(Language.Markers[string] or string)
 				Field:SetCursorPosition(0)
 				Field:SetScript("OnTextChanged", TextChanged)
 				tinsert(Config.Fields, Field)

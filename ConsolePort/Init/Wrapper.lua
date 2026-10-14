@@ -73,7 +73,7 @@ local function CP_GetTalentSpecInfo(isInspect)
 end
 
 function CPAPI.GetSpecializationInfo(specID)
-	_, specName, _ = CP_GetTalentSpecInfo()
+	local _, specName = CP_GetTalentSpecInfo()
 	return specID, specName;
 end
 
@@ -103,7 +103,7 @@ end
 function CPAPI:GetCharacterMetadata()
 	-- returns specID, specName on retail
 	if GetSpecializationInfo and GetSpecialization then
-		return GetSpecializationInfo(GetSpecializaton())
+		return GetSpecializationInfo(GetSpecialization())
 	end
 	-- returns classID, localized class token on classic
 	return GetClassID(), GetClassInfo()
@@ -507,7 +507,7 @@ CPCC.db = {
     fontSize = 24,
     fontFlags = "OUTLINE",
     minDuration = 1.5,      -- ignore shorter cooldowns (GCD etc)
-    decimalThreshold = 10,  -- show decimals when < this many seconds
+    decimalThreshold = 0,   -- v90: whole-number cooldown text only
     colorThresholds = {     -- (seconds) : color
         red = 2,
         yellow = 5,
@@ -521,23 +521,164 @@ CPCC.db = {
 CPCC.texts = CPCC.texts or {}   
 CPCC.meta = CPCC.meta or {} 
 
+-- v90: diagnostic only; records Blizzard logout refusal state without changing behavior.
+do
+    local logoutProbe = CreateFrame("Frame")
+    logoutProbe:RegisterEvent("UI_ERROR_MESSAGE")
+    logoutProbe:SetScript("OnEvent", function(self, event, msg)
+        local text = tostring(msg or "")
+        local lower = string.lower(text)
+        if (ERR_CANT_LOG_OUT and text == ERR_CANT_LOG_OUT) or string.find(lower, "log out", 1, true) or string.find(lower, "logout", 1, true) then
+            if not ConsolePortSettings then return end
+            ConsolePortSettings.LogoutDiagnostic = {
+                message=text, time=date and date("%Y-%m-%d %H:%M:%S") or tostring(GetTime()),
+                lockdown=InCombatLockdown and InCombatLockdown() and true or false,
+                combat=UnitAffectingCombat and UnitAffectingCombat("player") and true or false,
+                dead=UnitIsDeadOrGhost and UnitIsDeadOrGhost("player") and true or false,
+                taxi=UnitOnTaxi and UnitOnTaxi("player") and true or false,
+                speed=GetUnitSpeed and GetUnitSpeed("player") or nil,
+                falling=IsFalling and IsFalling() and true or false or nil,
+            }
+        end
+    end)
+end
 
-local function formatTime(s)
-    if s <= 0 then return "" end
-    if s >= 3600 then
-        local hours = math.floor(s / 3600 + 0.5)
-        return string.format("%dh", hours)
-    elseif s >= 60 then
-        local mins = math.floor(s / 60 + 0.5)
-        return string.format("%dm", mins)
+
+-- v99: diagnostics must never create ConsolePortSettings at file-load time.
+-- LoadSettings() uses a nil ConsolePortSettings table to detect a genuine first run
+-- and launch the controller/setup wizard.  Diagnostic storage is initialized lazily
+-- only after the settings table exists.
+
+local function formatTime(s, satellite)
+    if s <= 0 or s > 3600 then return "" end
+    -- v90: compact OmniCC-style whole-unit rounding, no decimals. The one-hour
+    -- ceiling is represented as 1h, then transitions naturally to 59m.
+    if s >= 3570 then
+        return "1h"
+    elseif s < 59.5 then
+        local seconds = math.floor(s + 0.5)
+        return seconds > 0 and string.format("%d", seconds) or ""
     else
-        if s < CPCC.db.decimalThreshold then
-            -- one decimal place
-            return string.format("%.1f", s)
-        else
-            return string.format("%d", math.floor(s + 0.5))
+        return string.format("%dm", math.floor(s / 60 + 0.5))
+    end
+end
+
+local function IsLiveSatellite(parent, fallback)
+    -- v66: during modifier transitions CPCCSatellite can be stale for one
+    -- render pass. Derive inactive-modifier status from the button itself when
+    -- possible so the font never flashes at main-button size.
+    local owner = parent and parent.CPCCOwner
+    local button = owner or parent
+    if button and button.mod and button.mod ~= "" then
+        local currentModifier = (button.header and button.header.GetAttribute and button.header:GetAttribute("state"))
+            or (ConsolePort and ConsolePort.GetCurrentModifier and ConsolePort:GetCurrentModifier())
+            or ""
+        return button.mod ~= currentModifier
+    end
+    return fallback and true or false
+end
+
+local function PositionCooldownText(holder, parent, satellite)
+    local fs = holder and holder.fontstring
+    if not fs then return end
+
+    fs:ClearAllPoints()
+    if not satellite then
+        fs:SetPoint("CENTER", holder, "CENTER", 0, 0)
+        return
+    end
+
+    local owner = parent and (parent.CPCCOwner or parent)
+    -- v106: square Minimal/Triple satellites are full square children, not
+    -- radial slices. Their countdown belongs at the exact center of the child.
+    if owner and owner.isSquareMode then
+        -- v108: anchor square countdowns to the action child itself. The CPCC
+        -- holder/cooldown frame may carry its own offsets or stale geometry.
+        fs:SetPoint("CENTER", owner, "CENTER", 0, 0)
+        return
+    end
+    local orientation = owner and owner.orientation
+    local mod = owner and owner.mod
+    if not mod and owner and owner.GetAttribute then
+        mod = owner:GetAttribute("modifier")
+    end
+
+    -- v70: Default's SHIFT/CTRL satellites occupy opposing radial slices.
+    -- Move the text toward the center of its own slice rather than shrinking
+    -- it globally. Offset is owner-relative so it scales with layouts/UI scale.
+    local w = (owner and owner.GetWidth and owner:GetWidth()) or 0
+    local h = (owner and owner.GetHeight and owner:GetHeight()) or 0
+    local dx, dy = 0, 0
+    local amountX = w * 0.055
+    local amountY = h * 0.055
+
+    -- v71: LT/SHIFT was moving toward the main button in v70. RT/CTRL
+    -- direction was correct, so reverse LT only and leave RT untouched.
+    local side = (mod == "SHIFT-" and -1) or (mod == "CTRL-" and -1) or 0
+    if side ~= 0 then
+        if orientation == "down" then
+            dy = side * amountY
+        elseif orientation == "up" then
+            dy = -side * amountY
+        elseif orientation == "left" then
+            dx = side * amountX
+        elseif orientation == "right" then
+            dx = -side * amountX
         end
     end
+
+    fs:SetPoint("CENTER", holder, "CENTER", dx, dy)
+end
+
+local function FitCooldownText(holder, parent, text, satellite)
+    local fs = holder and holder.fontstring
+    if not fs or not parent or not text or text == "" then return end
+
+    -- v67: preserve the renderer role for its lifetime. An inactive-bar
+    -- satellite must remain satellite-sized during the brief handoff where its
+    -- modifier becomes active; it will be hidden immediately afterward. The
+    -- newly active button has its own main cooldown renderer.
+    satellite = satellite and true or false
+    PositionCooldownText(holder, parent, satellite)
+
+    local owner = parent.CPCCOwner
+    local width = (owner and owner.GetWidth and owner:GetWidth()) or parent.CPCCOwnerWidth or (parent.GetWidth and parent:GetWidth()) or 0
+    local height = (owner and owner.GetHeight and owner:GetHeight()) or parent.CPCCOwnerHeight or (parent.GetHeight and parent:GetHeight()) or 0
+    if width <= 0 or height <= 0 then return end
+
+    -- v61: true auto-fit-to-box. There are no digit-count or suffix-specific
+    -- font rules. Define the visible text box, start deliberately oversized,
+    -- then reduce until the actual rendered FontString fits both dimensions.
+    --
+    -- The secure modifier wrapper in Default is larger than the visible
+    -- satellite artwork, so correct only the satellite's visual footprint.
+    local visualScale = satellite and 1.0 or 1.0
+    local visualW = width * visualScale
+    local visualH = height * visualScale
+
+    -- v112: dynamic-fit pass. Use the same 70% envelope for
+    -- both roles. Each renderer still measures against its own bordered button
+    -- dimensions.
+    local fitRatio = 0.70
+    local boxW = visualW * fitRatio
+    local boxH = visualH * fitRatio
+
+    -- Begin above any plausible final size. The result is determined entirely
+    -- by measured rendered width/height, not by character count.
+    local size = math.max(12, math.floor(visualH * 1.20 + 0.5))
+    local minSize = 8
+
+    fs:SetText(text)
+    while size > minSize do
+        fs:SetFont(CPCC.db.font, size, CPCC.db.fontFlags)
+        local sw = fs:GetStringWidth() or 0
+        local sh = fs:GetStringHeight() or 0
+        if sw <= boxW and sh <= boxH then
+            break
+        end
+        size = size - 1
+    end
+    fs:SetFont(CPCC.db.font, size, CPCC.db.fontFlags)
 end
 
 local function chooseColor(remaining)
@@ -550,15 +691,28 @@ local function chooseColor(remaining)
     end
 end
 
-function CPCC:CreateTextFor(parentRCooldown)
-    if not parentRCooldown then return nil end
-    local name = parentRCooldown:GetName()
-    if not name then return nil end
+local function ResolveCooldownTarget(target)
+    if type(target) == "string" then
+        return target, _G[target]
+    elseif type(target) == "table" and target.GetName then
+        local name = target:GetName()
+        return name, target
+    end
+    return nil, nil
+end
+
+function CPCC:CreateTextFor(target)
+    local name, parent = ResolveCooldownTarget(target)
+    if not name or not parent then return nil end
     if self.texts[name] then return self.texts[name] end
 
-    local holder = CreateFrame("Frame", name .. "OmniTextHolder", parentRCooldown)
-    holder:SetAllPoints(parentRCooldown)
-    holder:SetFrameLevel(parentRCooldown:GetFrameLevel() + 10) 
+    -- v104: cooldown targets may be made transparent to suppress Blizzard's
+    -- radial swipe. Parent CPCC text to the visual action-button owner instead
+    -- so that transparency never hides our countdown with the swipe.
+    local visualParent = parent.CPCCOwner or parent
+    local holder = CreateFrame("Frame", name .. "OmniTextHolder", visualParent)
+    holder:SetAllPoints(visualParent)
+    holder:SetFrameLevel(visualParent:GetFrameLevel() + 10)
 
     local fs = holder:CreateFontString(nil, "OVERLAY")
     fs:SetFont(self.db.font, self.db.fontSize, self.db.fontFlags)
@@ -569,40 +723,101 @@ function CPCC:CreateTextFor(parentRCooldown)
     fs:Show()
 
     self.texts[name] = holder
-    self.texts[name].fontstring = fs
-
+    holder.fontstring = fs
     self.meta[name] = self.meta[name] or { start = 0, duration = 0, visible = false, pop = 0, popTimer = 0, baseScale = 1 }
     return holder
 end
 
-function CPCC:StartCooldown(parentname, start, duration)
-    if not self.db.enabled then return end
-    if not parentname or not start or not duration then return end
+function CPCC:StartCooldown(target, start, duration)
+    if not self.db.enabled or not start or not duration then return end
+    local name, parent = ResolveCooldownTarget(target)
+    if not name or not parent then return end
     if duration <= self.db.minDuration then
-        -- ignore
+        self:StopCooldown(name)
         return
     end
 
-    local rcool = _G[parentname]
-    if not rcool then return end
+    local holder = self:CreateTextFor(parent)
+    if not holder then return end
 
-    local fs = self:CreateTextFor(rcool)
-    local meta = self.meta[parentname]
+    local meta = self.meta[name]
+    -- v69: satellite is a one-way promotion while a renderer is visible.
+    -- A renderer that started on the active bar may legitimately become an
+    -- inactive-bar satellite later, so main -> satellite must be allowed.
+    -- The reverse transition must never be rendered: when that modifier
+    -- becomes active, the outgoing satellite stays satellite-sized until the
+    -- action-button hide path removes it.
+    local requestedSatellite
+    if parent.CPCCSatellite ~= nil then
+        requestedSatellite = parent.CPCCSatellite and true or false
+    else
+        requestedSatellite = IsLiveSatellite(parent, false)
+    end
+    if not meta.visible then
+        meta.satellite = requestedSatellite
+    elseif requestedSatellite then
+        meta.satellite = true
+    end
+
+    -- v102: restore the proven front overlay.  Minimal satellites intentionally
+    -- sit in front of the primary button so the countdown is never obscured.
+    -- The Blizzard swipe is suppressed separately by the action-button path.
+    if holder.SetFrameLevel and parent.GetFrameLevel then
+        local owner = parent.CPCCOwner or parent
+        local squareMain = owner and owner.isSquareMode and not meta.satellite
+        -- v110: square main countdown stays above its own button/swipe but
+        -- below every Minimal satellite. Satellite countdowns retain the high
+        -- front overlay needed to win LT/RT/LT+RT overlap.
+        holder:SetFrameLevel(parent:GetFrameLevel() + (squareMain and 1 or 10))
+    end
+
+    -- v64/v68: while inactive-bar cooldown text is visible, suppress the LT/RT
+    -- modifier glyph(s) on that satellite so the cooldown number has a clean
+    -- center. Remember only labels that were actually shown so StopCooldown
+    -- can restore the previous visual state.
+    if not meta.visible then meta.hiddenHotkeys = nil end
+    if meta.satellite and not meta.visible then
+        local hidden = {}
+        for i = 1, 2 do
+            local hotkey = parent["hotkey"..i]
+            if hotkey and hotkey.IsShown and hotkey:IsShown() then
+                hidden[i] = true
+                hotkey:Hide()
+            end
+        end
+        if next(hidden) then meta.hiddenHotkeys = hidden end
+
+    end
+
     meta.start = start
     meta.duration = duration
     meta.visible = true
     meta.pop = 0
     meta.popTimer = 0
-    fs:SetScale(meta.baseScale or 1)
-    fs:Show()
+    holder:SetScale(meta.baseScale or 1)
+    holder:Show()
+    if self.driver then self.driver:Show() end
 end
 
-function CPCC:StopCooldown(parentname)
-    if not parentname then return end
-    local fs = self.texts[parentname]
-    local meta = self.meta[parentname]
-    if fs and meta then
-        fs:Hide()
+function CPCC:StopCooldown(target)
+    local name = ResolveCooldownTarget(target)
+    if not name then return end
+    local holder = self.texts[name]
+    local meta = self.meta[name]
+    if holder and meta then
+        holder:Hide()
+
+        -- Restore only modifier labels hidden by v64 for this cooldown.
+        if meta.hiddenHotkeys then
+            local _, parent = ResolveCooldownTarget(target)
+            if parent then
+                for i in pairs(meta.hiddenHotkeys) do
+                    local hotkey = parent["hotkey"..i]
+                    if hotkey then hotkey:Show() end
+                end
+            end
+            meta.hiddenHotkeys = nil
+        end
         meta.visible = false
         meta.start = 0
         meta.duration = 0
@@ -611,13 +826,15 @@ function CPCC:StopCooldown(parentname)
     end
 end
 
-function CPCC:OnUpdate(parentname, elapsed)
+function CPCC:OnUpdate(target, elapsed)
     if not self.db.enabled then return end
-    if not parentname then return end
-    local holder = self.texts[parentname]
-	local fs = holder.fontstring
-    local meta = self.meta[parentname]
-    if not fs or not meta then return end
+    local name = ResolveCooldownTarget(target)
+    if not name then return end
+    local holder = self.texts[name]
+    local meta = self.meta[name]
+    if not holder or not meta then return end
+    local fs = holder.fontstring
+    if not fs then return end
     if not meta.visible or meta.duration <= 0 then
         if holder:IsShown() then holder:Hide() end
         return
@@ -627,41 +844,77 @@ function CPCC:OnUpdate(parentname, elapsed)
     local remaining = (meta.start + meta.duration) - now
 
     if remaining <= 0 then
-        -- finished: trigger pop + hide after tiny delay
-        if self.db.popOnFinish then
-            meta.pop = self.db.popScale
-            meta.popTimer = self.db.popDuration
-        end
-
+        -- v69: use the full stop path so modifier labels and any satellite
+        -- visual state are reconciled even if the cooldown expires while the
+        -- game is backgrounded and no action-button refresh occurs.
         fs:SetText("")
-        holder:Hide()
-        meta.visible = false
-        meta.start = 0
-        meta.duration = 0
+        self:StopCooldown(name)
+
+        -- A satellite action button can otherwise remain visually parked until
+        -- mouseover/reload if its own cooldown state was not refreshed while
+        -- backgrounded. Force its inactive-cooldown visibility off at expiry.
+        local parent = holder:GetParent()
+        local owner = parent and (parent.CPCCOwner or parent)
+        if meta.satellite and owner and owner.SetOnCooldown then
+            owner:SetOnCooldown(false)
+        end
         return
     end
 
-    local text = formatTime(remaining)
-    fs:SetText(text)
-    local r,g,b = chooseColor(remaining)
-    fs:SetTextColor(r,g,b)
+    local text = formatTime(remaining, meta.satellite)
+    FitCooldownText(holder, holder:GetParent(), text, meta.satellite)
 
-    if meta.popTimer and meta.popTimer > 0 then
-        meta.popTimer = meta.popTimer - elapsed
-        local t = 1 - (meta.popTimer / self.db.popDuration)
-        local s = t * t * (3 - 2 * t)
-        local scale = (meta.baseScale or 1) + ( (self.db.popScale - (meta.baseScale or 1)) * (1 - s) )
-        holder:SetScale(scale)
-        if meta.popTimer <= 0 then
-            holder:SetScale(meta.baseScale or 1)
-            meta.pop = 0
-            meta.popTimer = 0
-        end
-    else
-        holder:SetScale(meta.baseScale or 1)
+    -- v50 diagnostic: capture compact, deduplicated geometry samples silently.
+    -- Keep the four role/layout buckets and record representative digit counts.
+    local parent = holder:GetParent()
+    local _, fontSize = fs:GetFont()
+    local w = parent and parent.GetWidth and parent:GetWidth() or 0
+    local h = parent and parent.GetHeight and parent:GetHeight() or 0
+    local square = ConsolePortBarSetup and ConsolePortBarSetup.useSquareButtons and 1 or 0
+    local layout = square == 1 and "MIN" or "DEF"
+    local role = meta.satellite and "SAT" or "MAIN"
+    local digits = string.len(tostring(text))
+    local bucket = layout .. "_" .. role .. "_" .. tostring(digits)
+    local diag
+    if ConsolePortSettings then
+        ConsolePortSettings.CPCCDiagnostic = ConsolePortSettings.CPCCDiagnostic or {}
+        diag = ConsolePortSettings.CPCCDiagnostic
     end
+    if diag and not diag[bucket] then
+        local owner = parent and parent.CPCCOwner
+        local ow = (owner and owner.GetWidth and owner:GetWidth()) or (parent and parent.CPCCOwnerWidth) or 0
+        local oh = (owner and owner.GetHeight and owner:GetHeight()) or (parent and parent.CPCCOwnerHeight) or 0
+        diag[bucket] = string.format("%s %s len%d target=%s frame=%.1fx%.1f owner=%.1fx%.1f font=%.1f text=%s",
+            layout, role, digits, tostring(name), w, h, ow, oh, fontSize or 0, tostring(text))
+    end
+
+    local r, g, b = chooseColor(remaining)
+    fs:SetTextColor(r, g, b)
 end
 
+-- One lightweight, throttled updater drives cooldown text in every bar mode.
+-- The previous implementation depended on the round-cooldown spinner's OnUpdate,
+-- which meant square/slice modes had no reliable text driver and mixed frame objects
+-- with string keys in the cooldown tables.
+CPCC.driver = CPCC.driver or CreateFrame("Frame")
+CPCC.driver.elapsed = 0
+CPCC.driver:SetScript("OnUpdate", function(self, elapsed)
+    self.elapsed = self.elapsed + elapsed
+    if self.elapsed < 0.05 then return end
+    local tick = self.elapsed
+    self.elapsed = 0
+    local active = false
+    for name, meta in pairs(CPCC.meta) do
+        if meta.visible then
+            active = true
+            CPCC:OnUpdate(name, tick)
+        end
+    end
+    if not active then self:Hide() end
+end)
+CPCC.driver:Hide()
+
+-- v51 diagnostic is captured silently in ConsolePort SavedVariables.
 -- Enable / Disable API
 function CPCC:Enable()
     self.db.enabled = true
@@ -669,9 +922,10 @@ end
 
 function CPCC:Disable()
     self.db.enabled = false
-    -- hide everything
-    for name, fs in pairs(self.texts) do
-        if fs then fs:Hide() end
+    if self.driver then self.driver:Hide() end
+    for name, holder in pairs(self.texts) do
+        if holder then holder:Hide() end
+        if self.meta[name] then self.meta[name].visible = false end
     end
 end
 
@@ -871,12 +1125,11 @@ function CPAPI.RoundCooldown_OnLoad(self)
                 f.endanimation.Start()
             end
 
-           	CPCC:StopCooldown(f)
+           	CPCC:StopCooldown(self)
             return
         end
         f.timespent = ts
         spinner:SetValue(ts / f.duration)
-		CPCC:OnUpdate(self, elapsed)
     end
 
     updateFrame:SetScript('OnUpdate', OnUpdate)
@@ -954,19 +1207,26 @@ function CPAPI.RoundCooldown_OnSetCooldown(self, start, duration)
     if (button and button.isSquareMode) then 
         self:SetAlpha(1)
         if roundcd and roundcd.spinner then roundcd.spinner:SetAlpha(0) end
+        if CPCC.db.enabled then CPCC:StartCooldown(self, start, duration) end
         return
 	elseif button and (not button.isSquareMode and button._sliceMaskContainer)  then 
         if roundcd and roundcd.spinner then roundcd.spinner:SetAlpha(0) end
 		ConsolePortBar.SliceMask:StartCooldown(button, start, duration)
 
-		if CPCC.db.enabled then 
-			local holder = CPCC:CreateTextFor(button)
-			if holder and holder.fontstring then
-				local scaledSize = math.floor(CPCC.db.fontSize * 0.6)
-        		holder.fontstring:SetFont(CPCC.db.font, scaledSize, CPCC.db.fontFlags)
-			end
-			CPCC:StartCooldown(button, start, duration) 
-		end	
+		-- v56: restore the proven Default/slice CPCC target used by v26: the
+		-- action button itself. Later sizing work moved this to the tiny internal
+		-- cooldown frame, while the hide path continued addressing the button.
+		-- Keep the proven render target and layer the new dynamic fitter on it.
+		if CPCC.db.enabled then
+			button.CPCCOwner = button
+			button.CPCCOwnerWidth = button:GetWidth()
+			button.CPCCOwnerHeight = button:GetHeight()
+			button.CPCCOwnerScale = button:GetScale() or 1
+			local showModifierCooldown = ConsolePortBarSetup and ConsolePortBarSetup.showmodifiercooldowns
+			local currentModifier = (button.header and button.header:GetAttribute('state')) or ConsolePort:GetCurrentModifier() or ''
+			button.CPCCSatellite = showModifierCooldown and button.mod and button.mod ~= '' and button.mod ~= currentModifier and true or false
+			CPCC:StartCooldown(button, start, duration)
+		end
 		return
     end
     
@@ -1001,6 +1261,7 @@ end
 function CPAPI.RoundCooldown_OnHideCooldown(self)
 	local button = self:GetParent()
     if (button and button.isSquareMode) then 
+        CPCC:StopCooldown(self)
 		return
 	elseif button and (not button.isSquareMode and button._sliceMaskContainer)  then
 		ConsolePortBar.SliceMask:StopCooldown(button)

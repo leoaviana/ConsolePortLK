@@ -49,10 +49,32 @@ end
 ---------------------------------------------------------------
 
 function Override:Click(owner, old, button, mouseClick, mod)
+	local found
 	for i=1, select('#', GetBindingKey(old)) do
 		local key = select(i, GetBindingKey(old))
-		SetOverride(owner, true, mod and mod..key or key, button, mouseClick)
+		if key then
+			found = true
+			SetOverride(owner, true, mod and mod..key or key, button, mouseClick)
+		end
 	end
+
+	-- On 3.3.5 the logical CP_* binding can occasionally be absent from
+	-- GetBindingKey while the controller is still correctly calibrated. The
+	-- interface cursor then displays A/X prompts but never owns those physical
+	-- inputs, so they fall through to the action bar. Resolve the calibrated
+	-- physical key directly as a fallback.
+	if not found and old and old:match('^CP_') then
+		local calibration = db('calibration')
+		if calibration then
+			for binding, key in pairs(calibration) do
+				if binding == old and key then
+					SetOverride(owner, true, mod and mod..key or key, button, mouseClick)
+					found = true
+				end
+			end
+		end
+	end
+	return found
 end
 
 function Override:Shift(owner, old, button, mouseClick)
@@ -226,8 +248,8 @@ end
 ---------------------------------------------------------------
 
 function ClickWrapper:SetObject(object)
-	if 	object and object.IsObjectType and
-		object:IsObjectType("Button") or object:IsObjectType("CheckButton") then
+	if object and object.IsObjectType and
+		(object:IsObjectType("Button") or object:IsObjectType("CheckButton")) then
 		self.object = object
 		return true
 	end
@@ -399,7 +421,9 @@ function Cursor:Select(node, object, super, state)
 					local unit = UIDROPDOWNMENU_INIT_MENU.unit
 					Override:Macro(_G[button..modifier], macro:format(unit or ''))
 				elseif override then
-					Override:Button(_G[button..modifier], node)
+					local target = node.ffAutoFormClick
+					if click ~= 'LeftButton' or not target or not target:IsVisible() then target = node end
+					Override:Button(_G[button..modifier], target)
 				else
 					Override:Button(_G[button..modifier], nil)
 				end

@@ -1067,13 +1067,13 @@ local function InitScanTracking()
 end
 
 ---------------------------------------------------------------
--- Tick: refresh all visible plates ~20fps
+-- Tick: refresh all visible plates ~10fps
 ---------------------------------------------------------------
 local tickFrame   = CreateFrame('Frame')
 local tickElapsed = 0
 tickFrame:SetScript('OnUpdate', function(self, elapsed)
     tickElapsed = tickElapsed + elapsed
-    if tickElapsed < 0.05 then return end
+    if tickElapsed < 0.10 then return end
     tickElapsed = 0
     for plate in pairs(PlatesVisible) do
         UpdatePlate(plate)

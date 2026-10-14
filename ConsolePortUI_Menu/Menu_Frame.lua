@@ -637,12 +637,29 @@ local Menu =  UI:CreateFrame('Frame', an, IsCustomClient and EscapeMenu or GameM
 					Img 	= ICON:format('inv_misc_wrench_01'),
 					OnLoadHook = function(self) SetPortraitToTexture(self.Icon, ICON:format('inv_misc_wrench_01')) end,
 				},
+                ConsolePort = {
+                    Type    = 'Button',
+                    Setup   = baseTemplates,
+                    Mixin   = Button,
+                    ID      = 9,
+                    Point   = {'TOP', 'parent.AddOns', 'BOTTOM', 0, 0},
+                    Desc    = 'ConsolePort',
+                    Attrib  = {hidemenu = true},
+                    Img     = [[Interface\AddOns\ConsolePort\Textures\Logos\CP.blp]],
+                    OnClick = function(self)
+                        if ConsolePortOldConfig then
+                            -- Let OpenCategory own both navigation and showing the window.
+                            -- Calling Show() first defeats exact reopen-state restoration.
+                            ConsolePortOldConfig:OpenCategory('Controls')
+                        end
+                    end,
+                },
 				Macros  = {
 					Type 	= 'Button',
 					Setup 	= baseTemplates,
 					Mixin 	= Button,
-					ID 		= 9,
-					Point 	= {'TOP', 'parent.AddOns', 'BOTTOM', 0, -16},
+					ID 		= 10,
+					Point 	= {'TOP', 'parent.ConsolePort', 'BOTTOM', 0, -16},
 					Desc	= MACROS, 
 					RefTo 	= IsCustomClient and EscapeMenuButton11 or GameMenuButtonMacros,
 					Img 	= ICON:format('trade_engineering'),
@@ -652,7 +669,7 @@ local Menu =  UI:CreateFrame('Frame', an, IsCustomClient and EscapeMenu or GameM
 					Type 	= 'Button',
 					Setup 	= baseTemplates,
 					Mixin 	= Button,
-					ID 		= 10,
+					ID 		= 11,
 					Point 	= {'TOP', 'parent.Macros', 'BOTTOM', 0, 0},
 					Desc	= KEY_BINDINGS, 
 					RefTo 	= IsCustomClient and EscapeMenuButton9 or GameMenuButtonKeybindings,
@@ -662,7 +679,7 @@ local Menu =  UI:CreateFrame('Frame', an, IsCustomClient and EscapeMenu or GameM
 					Type 	= 'Button',
 					Setup 	= baseTemplates,
 					Mixin 	= Button,
-					ID 		= 11,
+					ID 		= 12,
 					Point 	= {'TOP', 'parent.KeyBindings', 'BOTTOM', 0, 0},
 					Desc	= HELP_LABEL, 
 					RefTo 	= GameMenuButtonHelp and GameMenuButtonHelp or HelpMicroButton,

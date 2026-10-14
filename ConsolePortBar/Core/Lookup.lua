@@ -136,9 +136,9 @@ end
 
 function ab:GetDefaultButtonLayout(button)
 	local layout = {
+		-- official rc2 native shoulder defaults
 		CP_T3 = {point = {'LEFT', 456, 56}, dir = 'right', size = 64},
 		CP_T4 = {point = {'RIGHT', -456, 56}, dir = 'left', size = 64},
-		---
 		CP_T1 = {point = {'LEFT', 396, 16}, dir = 'down', size = 64},
 		CP_T2 = {point = {'RIGHT', -396, 16}, dir = 'down', size = 64},
 		---
@@ -183,6 +183,9 @@ function ab:GetPresets()
 			watchbars = true,
 			showline = true,
 			lock = true,
+			enablecooldowntext = true,
+			showmodifiercooldowns = true,
+			hiddenbarcooldowns = '10',
 			layout = {
 				CP_L_RIGHT = {dir = 'right', point = {'LEFT', 330, 9}, size = 64},
 				CP_L_LEFT = {dir = 'left', point = {'LEFT', 80, 9}, size = 64},
@@ -192,8 +195,9 @@ function ab:GetPresets()
 				CP_R_LEFT = {dir = 'left', point = {'RIGHT', -330, 9}, size = 64},
 				CP_R_DOWN = {dir = 'down', point = {'RIGHT', -250, 9}, size = 64},
 				CP_R_UP = {dir = 'up', point = {'RIGHT', -165, 9}, size = 64},
-				CP_T3 = {dir = 'right', point = {'LEFT', 440, 9}, size = 64},
-				CP_T4 = {dir = 'left', point = {'RIGHT', -440, 9}, size = 64},
+				-- Keep absent/unchecked at runtime; retain official Orthodox first-enable geometry.
+				CP_T3 = {dir = 'right', point = {'LEFT', 440, 9}, size = 64, hidden = true},
+				CP_T4 = {dir = 'left', point = {'RIGHT', -440, 9}, size = 64, hidden = true},
 				CP_T1 = {dir = 'up', point = {'LEFT', 405, 75}, size = 64},
 				CP_T2 = {dir = 'up', point = {'RIGHT', -405, 75}, size = 64},
 			},
@@ -205,6 +209,9 @@ function ab:GetPresets()
 			showline = true,
 			showart = true,
 			lock = true,
+			enablecooldowntext = true,
+			showmodifiercooldowns = true,
+			hiddenbarcooldowns = '10',
 			layout = ab:GetDefaultButtonLayout(),
 		},
 		["Crossbar: Minimal"] = {
@@ -213,6 +220,9 @@ function ab:GetPresets()
 			watchbars = true,
 			showline = false,
 			lock = true,
+			enablecooldowntext = true,
+			showmodifiercooldowns = true,
+			hiddenbarcooldowns = '10',
 			useSquareButtons = true,
 			layout = {
 				-- RIGHT CLUSTER (Face Buttons)
@@ -222,9 +232,15 @@ function ab:GetPresets()
 				CP_R_UP      = {dir = 'up',    point = {'BOTTOM',  150, 100}, size = 45}, 
 				CP_R_DOWN    = {dir = 'down',  point = {'BOTTOM',  150, 50}, size = 45}, 
 				
-				-- RIGHT SHOULDERS (Stacked vertically in the center-right)
-				CP_T4        = {dir = 'up',    point = {'BOTTOM',   40, 100}, size = 45}, 
-				CP_T1        = {dir = 'down',  point = {'BOTTOM',   40, 50}, size = 45}, 
+				-- Actual bumpers only. Modifier-only trigger entries are intentionally
+				-- omitted so skipped L1/R1-style controls do not reappear as bar buttons.
+				-- LB (CP_T1) belongs on the left; RB (CP_T2) belongs on the right.
+				CP_T1        = {dir = 'down',  point = {'BOTTOM',  -30, 50}, size = 45},
+				-- v143: modifier-only shoulder controls retain the official rc2
+				-- Minimal geometry even while unchecked. Checking one for the first
+				-- time therefore has real preset values instead of 64/CENTER/0/0.
+				CP_T3        = {dir = 'up',    point = {'BOTTOM',  -30, 100}, size = 45, hidden = true},
+				CP_T4        = {dir = 'up',    point = {'BOTTOM',   30, 100}, size = 45, hidden = true},
 
 				-- LEFT CLUSTER (D-Pad)
 				CP_L_LEFT    = {dir = 'left',  point = {'BOTTOM', -200, 75}, size = 45}, 
@@ -232,9 +248,7 @@ function ab:GetPresets()
 				CP_L_UP      = {dir = 'up',    point = {'BOTTOM', -150, 100}, size = 45}, 
 				CP_L_DOWN    = {dir = 'down',  point = {'BOTTOM', -150, 50}, size = 45}, 
 				
-				-- LEFT SHOULDERS (Stacked vertically in the center-left)
-				CP_T3        = {dir = 'up',    point = {'BOTTOM',  -40, 100}, size = 45}, 
-				CP_T2        = {dir = 'down',  point = {'BOTTOM',  -40, 50}, size = 45}, 
+				CP_T2        = {dir = 'down',  point = {'BOTTOM',   30, 50}, size = 45}, 
 			},
 		}, 
 
@@ -244,6 +258,9 @@ function ab:GetPresets()
 			watchbars = true,
 			showline = false,
 			lock = true,
+			enablecooldowntext = true,
+			showmodifiercooldowns = true,
+			hiddenbarcooldowns = '10',
 			useSquareButtons = true,
 			isTriple = true,
 			dividers = {
@@ -313,10 +330,11 @@ function ab:GetPresets()
 				CP_R_RIGHT_SHIFT  = {point={'BOTTOM', -200, 75},  size=45},
 
 
-				CP_T3 = {point = {'BOTTOM', -75, 215}, size=45, scale=0.8, static=true},
-				CP_T4 = {point = {'BOTTOM', -25, 215}, size=45, scale=0.8, static=true},
-				CP_T1 = {point = {'BOTTOM', 25, 215}, size=45, scale=0.8, static=true},
-				CP_T2 = {point = {'BOTTOM', 75, 215}, size=45, scale=0.8, static=true},
+				-- v115 retail-reference order: LB, LT, RT, RB (outer bumpers, inner triggers).
+				CP_T1 = {point = {'BOTTOM', -75, 215}, size=45, scale=0.8, static=true}, -- LB
+				CP_T3 = {point = {'BOTTOM', -25, 215}, size=45, scale=0.8, static=true, hidden=true}, -- LT visual carrier
+				CP_T4 = {point = {'BOTTOM',  25, 215}, size=45, scale=0.8, static=true, hidden=true}, -- RT visual carrier
+				CP_T2 = {point = {'BOTTOM',  75, 215}, size=45, scale=0.8, static=true}, -- RB
 
 				-- CENTER DIAMOND (NOMOD/BOTH) - Stays at 0
 				CP_L_UP           = {point={'BOTTOM', -75, 100}, size=45},
@@ -341,6 +359,21 @@ function ab:GetPresets()
 			},
 		}
 	}
+end
+
+-- v142: Resolve first-enable geometry from the active preset rather than
+-- falling back to generic Default coordinates.  Existing hidden entries always
+-- retain their own saved geometry; this is only for a binding that has never
+-- existed in the active layout.
+function ab:GetPresetButtonLayout(presetName, button)
+	if not button then return end
+	local presets = self:GetPresets()
+	local preset = presetName and presets[presetName]
+	local data = preset and preset.layout and preset.layout[button]
+	if data then
+		return db.table.copy(data)
+	end
+	return db.table.copy(self:GetDefaultButtonLayout(button))
 end
 
 function ab:GetRGBColorFor(element, default)
@@ -368,7 +401,6 @@ function ab:GetRGBColorFor(element, default)
 		return unpack(current[element])
 	end
 end
-
 function ab:GetDefaultSettings()
 	return 	{
 		scale = 0.9,
@@ -377,6 +409,9 @@ function ab:GetDefaultSettings()
 		showline = true,
 		lock = true,
 		flashart = true,
+		enablecooldowntext = true,
+		showmodifiercooldowns = true,
+			hiddenbarcooldowns = '10',
 		layout = ab:GetDefaultButtonLayout()
 	}
 end
@@ -406,9 +441,9 @@ function ab:GetBooleanSettings(otherCFG)
 			cvar = 'lockpet',
 			toggle = cfg.lockpet,
 		},
-		{	desc = L.CFG_ENABLECDTEXT,
-			cvar = 'enablecooldowntext',
-			toggle = cfg.enablecooldowntext,
+		{	desc = L.CFG_SHOWALLBUTTONS,
+			cvar = 'showbuttons',
+			toggle = cfg.showbuttons,
 		},
 		{	desc = L.CFG_HIDEINCOMBAT,
 			cvar = 'combathide',
@@ -434,10 +469,7 @@ function ab:GetBooleanSettings(otherCFG)
 			cvar = 'disablednd',
 			toggle = cfg.disablednd,
 		},
-		{	desc = L.CFG_SHOWALLBUTTONS,
-			cvar = 'showbuttons',
-			toggle = cfg.showbuttons,
-		},
+
 		{	desc = L.CFG_QUICKMENU,
 			cvar = 'quickMenu',
 			toggle = cfg.quickMenu,

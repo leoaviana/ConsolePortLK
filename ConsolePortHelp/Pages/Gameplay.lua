@@ -114,7 +114,7 @@ Help:AddPage('Cursor & camera', 'Gameplay', [[<HTML><BODY>
 		Entering "camera mode" (holding down right click on a regular mouse) can be <a href="run:ConsolePortOldConfig:OpenCategory('Controls') ConsolePort:SetCurrentNode(ConsolePortOldConfigContainerControlsMouseEvent1)">|cff69ccf0toggled by various events that you can set yourself in the general settings|r</a>.
 		You can also set a controller specific binding to toggle in and out of camera mode. While unrecommended, you may also disable all these features to simply hold your right stick down to pan the camera.
 		<br/><br/>
-		You can easily escape the locked camera by pressing down on your right stick, using the double tapped modifier setting, using the "Toggle Mouse Look" binding or using the interact button functionality.
+		You can easily escape the locked camera by pressing down on your right stick, using the "Toggle Mouse Look" binding or using the interact button functionality. The optional double tapped modifier setting can also do this, but it is disabled by default in this community build.
 	</p><br/>
 	<H2 align="left">
 		Cursor mode

@@ -194,6 +194,12 @@ function lib:CreateButton(id, name, header, config)
 
 	button:UpdateConfig(config)
 
+	-- v54: stamp the cooldown frame with its actual owning action button once,
+	-- at creation time. This covers every cooldown update path and every layout.
+	if button.cooldown then
+		button.cooldown.CPCCOwner = button
+	end
+
 	-- run an initial update
 	button:UpdateAction()
 
@@ -215,7 +221,18 @@ function SetupSecureSnippets(button)
     	if self:GetAttribute("type") == "dummy" then return end
 
 		local state = ...
-		local _type = type  
+		local _type = type
+
+		-- v41: the bar header is authoritative for held modifiers. During a
+		-- stance/form transition 3.3.5 can deliver a transient base-state update
+		-- to the action child even though the bar still securely reports SHIFT-/CTRL-.
+		-- Reject only that contradictory transition. A real modifier release first
+		-- changes the header to base, so the normal base transition remains allowed.
+		local parent = self:GetParent()
+		local parentState = parent and parent:GetAttribute("state")
+		if (state == nil or state == "") and parentState and parentState ~= "" then
+			state = parentState
+		end
 
 		self:SetAttribute("state", state)
 
@@ -274,11 +291,25 @@ function SetupSecureSnippets(button)
  
 	button:SetAttribute("_childupdate-actionpage", [[
 		self:SetAttribute('actionpage', message)
-		if self:GetID() > 0 then
-			local state = self:GetAttribute("state")
-			local kind, value = (self:GetAttribute(format("labtype-%s", state)) or "empty"), self:GetAttribute(format("labaction-%s", state))
-			control:CallMethod("CallMethodFromFrame", self:GetName(), "ButtonContentsChanged", state, kind, value + ((message - 1) * 12))
+
+		-- Reconcile every stored action state to the new stance/stealth page,
+		-- not only the modifier that happens to be held at this instant.
+		-- This preserves held-modifier visuals while preventing the hidden
+		-- base state from retaining a stale stealth-page action slot.
+		local pageStates = newtable("CTRL-SHIFT-", "CTRL-", "SHIFT-", "")
+		for _, state in pairs(pageStates) do
+			local kind = self:GetAttribute(format("labtype-%s", state)) or "empty"
+			local value = self:GetAttribute(format("labaction-%s", state))
+			if kind == "action" and type(value) == "number" and value <= 12 then
+				control:CallMethod("CallMethodFromFrame", self:GetName(), "CachePagedAction",
+					state, kind, value + ((message - 1) * 12))
+			end
 		end
+
+		-- Refresh only the currently active state visually.
+		local state = self:GetAttribute("state") or ""
+		control:RunFor(self, self:GetAttribute("UpdateState"), state)
+		control:CallMethod("CallMethodFromFrame", self:GetName(), "UpdateAction")
 	]])
 
 	button:SetAttribute("_childupdate-hover", [[
@@ -306,7 +337,6 @@ function SetupSecureSnippets(button)
 		elseif kind == "spell" or kind == "item" or kind == "macro" then
 			return "clear", kind, value
 		else
-			print("ActionButton: Unknown type: " .. tostring(kind))
 			return false
 		end
 	]])
@@ -356,7 +386,6 @@ function SetupSecureSnippets(button)
 				if extra then
 					value = extra
 				else
-					print("no spell id?", ...)
 				end
 			elseif kind == "item" and value then
 				value = format("item:%d", value)
@@ -524,14 +553,14 @@ function Generic:SetState(state, kind, action)
 
 	self.state_types[state] = kind
 	self.state_actions[state] = action
+	self:SetAttribute(format("labtype-%s", state), kind)
+	self:SetAttribute(format("labaction-%s", state), action)
 	self:UpdateState(state)
 end
 
 function Generic:UpdateState(state)
 	if not state then state = self:GetAttribute("state") end
 	state = tostring(state)
-	self:SetAttribute(format("labtype-%s", state), self.state_types[state])
-	self:SetAttribute(format("labaction-%s", state), self.state_actions[state])
 	if state ~= tostring(self:GetAttribute("state")) then return end
 	if self.header then
 		self.header:SetFrameRef("updateButton", self)
@@ -548,6 +577,14 @@ end
 function Generic:GetAction(state)
 	if not state then state = self:GetAttribute("state") end
 	state = tostring(state)
+	-- Resolve the requested modifier exactly as the held main button does.
+	-- Display caches and a nested satellite's own page can lag the bar header.
+	local kind = self:GetAttribute(format("labtype-%s", state))
+	local action = self:GetAttribute(format("labaction-%s", state))
+	if kind == "action" and type(action) == "number" then
+		local page = (self.header and self.header:GetAttribute("actionpage")) or self:GetAttribute("actionpage") or 1
+		return kind, action <= NUM_ACTIONBAR_BUTTONS and action + ((page - 1) * NUM_ACTIONBAR_BUTTONS) or action
+	end
 	return self.state_types[state] or "empty", self.state_actions[state]
 end
 
@@ -562,6 +599,16 @@ function Generic:ButtonContentsChanged(state, kind, value)
 	self.state_types[state] = kind or "empty"
 	self.state_actions[state] = value
 	self:UpdateAction(self)
+end
+
+-- Cache a page-relative action identity without forcing that modifier state
+-- onto the visible button. This is required when a stance/stealth page changes
+-- while LT/RT is still held: the hidden base state must still learn its new
+-- action slot before the modifier is released.
+function Generic:CachePagedAction(state, kind, value)
+	state = tostring(state)
+	self.state_types[state] = kind or "empty"
+	self.state_actions[state] = value
 end
 
 function Generic:DisableDragNDrop(flag)
@@ -606,8 +653,18 @@ local function PickupAny(kind, target, detail, ...)
 end
 
 function Generic:OnEnter() 
+	self:UpdateAction()
 	self.header:FadeIn(self.header:GetAlpha())
-	self:FadeIn() 
+	self:FadeIn()
+    -- v109: square satellite hover is a live visual state, independent of the
+    -- cooldown lifecycle. Re-entering after expiry must restore modifier glyphs.
+    if self.isSquareMode and self.mod and self.mod ~= '' and not self.isOnCooldown then
+        self.forceShow = true
+        for i = 1, 2 do
+            local modIcon = self['hotkey'..i]
+            if modIcon then modIcon:Show() end
+        end
+    end 
 	if self.config.tooltip ~= "disabled" and (self.config.tooltip ~= "nocombat" or not InCombatLockdown()) then
 		UpdateTooltip(self)
 	end 
@@ -619,6 +676,15 @@ function Generic:OnEnter()
 end
 
 function Generic:OnLeave() 
+    if self.isSquareMode and self.mod and self.mod ~= '' then
+        self.forceShow = false
+        if ab.cfg and ab.cfg.hideModifiers and not self.isOnCooldown then
+            for i = 1, 2 do
+                local modIcon = self['hotkey'..i]
+                if modIcon then modIcon:Hide() end
+            end
+        end
+    end
 	if self.header:GetAttribute('hidesafe') and not InCombatLockdown() then
 		self.header:FadeOut(self.header:GetAlpha())
 	end
@@ -732,10 +798,11 @@ end
 function InitializeEventHandler()
 	lib.eventFrame:SetScript("OnEvent", OnEvent)
 	lib.eventFrame:RegisterEvent("PLAYER_ENTERING_WORLD")
+	lib.eventFrame:RegisterEvent("PLAYER_REGEN_ENABLED")
 	lib.eventFrame:RegisterEvent("ACTIONBAR_SHOWGRID")
 	lib.eventFrame:RegisterEvent("ACTIONBAR_HIDEGRID")
-	--lib.eventFrame:RegisterEvent("ACTIONBAR_PAGE_CHANGED")
-	--lib.eventFrame:RegisterEvent("UPDATE_BONUS_ACTIONBAR")
+	lib.eventFrame:RegisterEvent("ACTIONBAR_PAGE_CHANGED")
+	lib.eventFrame:RegisterEvent("UPDATE_BONUS_ACTIONBAR")
 	lib.eventFrame:RegisterEvent("ACTIONBAR_SLOT_CHANGED")
 	lib.eventFrame:RegisterEvent("UPDATE_BINDINGS")
 	lib.eventFrame:RegisterEvent("UPDATE_SHAPESHIFT_FORM")
@@ -768,7 +835,10 @@ function InitializeEventHandler()
 end
 
 function OnEvent(frame, event, arg1, ...)
-	if (event == "UNIT_INVENTORY_CHANGED" and arg1 == "player") or event == "LEARNED_SPELL_IN_TAB" then
+	if event == "PLAYER_REGEN_ENABLED" then
+		-- Reconcile satellite layering once protected frame changes are allowed.
+		for button in next, ButtonRegistry do UpdateCooldown(button) end
+	elseif (event == "UNIT_INVENTORY_CHANGED" and arg1 == "player") or event == "LEARNED_SPELL_IN_TAB" then
 		local tooltipOwner = GameTooltip:GetOwner()
 		if ButtonRegistry[tooltipOwner] then
 			tooltipOwner:SetTooltip()
@@ -779,8 +849,27 @@ function OnEvent(frame, event, arg1, ...)
 				Update(button)
 			end
 		end
-	elseif event == "PLAYER_ENTERING_WORLD" or event == "UPDATE_SHAPESHIFT_FORM" then
-		ForAllButtons(Update) 
+	elseif event == "PLAYER_ENTERING_WORLD"
+		or event == "UPDATE_SHAPESHIFT_FORM"
+		or event == "ACTIONBAR_PAGE_CHANGED"
+		or event == "UPDATE_BONUS_ACTIONBAR" then
+		ForAllButtons(Update)
+		if event == "PLAYER_ENTERING_WORLD" then
+			-- 3.3.5 can fire PLAYER_ENTERING_WORLD before the secure action/page
+			-- attributes and spell cooldown cache are fully settled. Prime the
+			-- registry once after login so the first Prowl cooldown is not lost.
+			CPAPI.TimerAfter(0.5, function()
+				-- If login occurred while already in a bonus state (notably Prowl),
+				-- prime that live secure page before refreshing the button registry.
+				if ConsolePortBar and ConsolePortBar.PrimeCurrentActionPage then
+					ConsolePortBar:PrimeCurrentActionPage()
+				end
+				ForAllButtons(Update)
+				for button in next, ButtonRegistry do UpdateCooldown(button) end
+			end)
+		elseif event == "ACTIONBAR_PAGE_CHANGED" or event == "UPDATE_BONUS_ACTIONBAR" then
+			pageRefreshTimer = 0.05
+		end 
 	elseif event == "ACTIONBAR_SHOWGRID" then
 		ShowGrid()
 	elseif event == "ACTIONBAR_HIDEGRID" then
@@ -799,15 +888,11 @@ function OnEvent(frame, event, arg1, ...)
 		for button in next, NonActionButtons do
 			UpdateUsable(button)
 		end
-	elseif event == "ACTIONBAR_UPDATE_COOLDOWN" then
-		for button in next, ActionButtons do
-			UpdateCooldown(button)
-			if GameTooltip:GetOwner() == button then
-				UpdateTooltip(button)
-			end
-		end
-	elseif event == "SPELL_UPDATE_COOLDOWN" then
-		for button in next, NonActionButtons do
+	elseif event == "ACTIONBAR_UPDATE_COOLDOWN" or event == "SPELL_UPDATE_COOLDOWN" then
+		-- Cooldowns can be started indirectly by a different spell/form action.
+		-- Refresh every registered button, including inactive modifier/page states,
+		-- so returning to a layer immediately shows the real cooldown.
+		for button in next, ButtonRegistry do
 			UpdateCooldown(button)
 			if GameTooltip:GetOwner() == button then
 				UpdateTooltip(button)
@@ -852,9 +937,22 @@ end
 
 local flashTime = 0
 local rangeTimer = -1
+local pageRefreshTimer
 function OnUpdate(_, elapsed)
 	flashTime = flashTime - elapsed
 	rangeTimer = rangeTimer - elapsed
+
+	-- Reconcile after the secure stealth/bonus page driver has settled.
+	if pageRefreshTimer then
+		pageRefreshTimer = pageRefreshTimer - elapsed
+		if pageRefreshTimer <= 0 then
+			pageRefreshTimer = nil
+			for button in next, ButtonRegistry do
+				button:UpdateState()
+				Update(button)
+			end
+		end
+	end
 	-- Run the loop only when there is something to update
 	if rangeTimer <= 0 or flashTime <= 0 then
 		for button in next, ActiveButtons do
@@ -978,6 +1076,31 @@ end
 
 function Generic:Hover(isEnabled)
     self.forceShow = isEnabled
+    -- v105: an active Minimal cooldown owns the satellite text surface. Hover
+    -- may reveal the child itself, but must never reveal modifier glyphs over
+    -- an active countdown, regardless of the user's modifier-text preference.
+    if self.isSquareMode then
+        if self.isOnCooldown then
+            if self.hotkey then self.hotkey:Hide() end
+            for i = 1, 2 do
+                local modIcon = self['hotkey'..i]
+                if modIcon then modIcon:Hide() end
+            end
+        elseif isEnabled and self.mod and self.mod ~= '' then
+            -- v107: after a cooldown releases the text surface, hovering an
+            -- inactive satellite may show its modifier glyphs again even when
+            -- persistent modifier labels are disabled.
+            for i = 1, 2 do
+                local modIcon = self['hotkey'..i]
+                if modIcon then modIcon:Show() end
+            end
+        elseif not isEnabled and ab.cfg and ab.cfg.hideModifiers then
+            for i = 1, 2 do
+                local modIcon = self['hotkey'..i]
+                if modIcon then modIcon:Hide() end
+            end
+        end
+    end
     if self.isMainButton then 
         local wrapper = ab.libs.registry[self.plainID]
         if wrapper then
@@ -1024,10 +1147,30 @@ end
 function Generic:SetOnCooldown(isEnabled, instantAlpha)
 	self.isOnCooldown = isEnabled
 	if self.isMainButton then return end
+	-- v114: satellite swipe exists only for the active cooldown lifetime.
+	-- Hide it before any expiry fade/hover restoration to prevent a final-frame flash.
+	if self.isSquareMode and self.mod and self.mod ~= '' and self.cooldown then
+		self.cooldown:SetAlpha(isEnabled and 1 or 0)
+	end
 	if isEnabled then
 		self:FadeIn(1, instantAlpha and 0 or 0.2)
 	else
-		self:FadeOut(0, instantAlpha and 0 or 0.2) 
+        -- v108: if the cursor is already over an inactive square satellite when
+        -- its cooldown expires, no new OnEnter fires. Restore hover modifier
+        -- glyphs here instead of waiting for the mouse to leave/re-enter.
+        local hovered = self.IsMouseOver and self:IsMouseOver()
+        if self.isSquareMode and self.mod and self.mod ~= '' and (self.forceShow or hovered) then
+            self.forceShow = true
+            for i = 1, 2 do
+                local modIcon = self['hotkey'..i]
+                if modIcon then modIcon:Show() end
+            end
+            -- v109: cooldown expiry under the cursor becomes hover-only state;
+            -- do not hide the satellite out from underneath the mouse.
+            self:FadeIn(1, 0)
+        else
+            self:FadeOut(0, instantAlpha and 0 or 0.2)
+        end 
 	end
 end
 
@@ -1086,6 +1229,12 @@ function Generic:UpdateAction(force)
 end
 
 function Update(self)
+	-- Event refreshes also need to reconcile action identity before reading
+	-- textures, tooltips, range or cooldowns from the display cache.
+	local kind, action = self:GetAction()
+	if kind == "action" and self._state_type == "action" then
+		self._state_action = action
+	end
 	if self:HasAction() then
 		ActiveButtons[self] = true
 		if self._state_type == "action" then
@@ -1262,8 +1411,159 @@ function UpdatePage(self)
 end 
 
 function UpdateCooldown(self)
-	local start, duration, enable = self:GetCooldown()
+	local start, duration, enable
+	-- v93: promoted Triple wings are static representations of a specific
+	-- modifier state. Query that state's action rather than the bar's live state.
+	local fixedMod = ((self:GetAttribute('static') or (self.header and self.header:GetAttribute('isTriple') and self.mod == 'CTRL-SHIFT-')) and (self:GetAttribute('modifier') or self.mod))
+	if fixedMod and fixedMod ~= '' then
+		local kind, action = self:GetAction(fixedMod)
+		if kind == 'action' and action then
+			local slot = action
+			start, duration, enable = GetActionCooldown(slot)
+			if not duration or duration <= 0 then
+				local at, id = GetActionInfo(slot)
+				if at == 'spell' and id then start, duration, enable = GetSpellCooldown(id) end
+			end
+		else
+			start, duration, enable = self:GetCooldown()
+		end
+	else
+		start, duration, enable = self:GetCooldown()
+	end
+
+	-- Triple center remains the base action/cooldown during a single LT or RT
+	-- focus. Only the combined LT+RT state is allowed to page the center cluster.
+	if self.header and self.header:GetAttribute('isTriple') and (self.mod == nil or self.mod == '') then
+		local held = self.header:GetAttribute('state') or ''
+		if held == 'SHIFT-' or held == 'CTRL-' then
+			local kind, action = self:GetAction('')
+			if kind == 'action' and action then
+				local slot = action
+				start, duration, enable = GetActionCooldown(slot)
+				if not duration or duration <= 0 then
+					local at, id = GetActionInfo(slot)
+					if at == 'spell' and id then start, duration, enable = GetSpellCooldown(id) end
+				end
+			end
+		end
+	end
+	-- v90: ownership only. Suppress OmniCC on ConsolePort cooldown frames while
+	-- CPCC is enabled; release the frame back to OmniCC when CPCC is disabled.
+	if self.cooldown then
+		self.cooldown.noCooldownCount = (ab.cfg and ab.cfg.enablecooldowntext) and true or nil
+	end
 	CooldownFrame_SetTimer(self.cooldown, start, duration, enable)
+
+	-- Retail-style cluster behavior: inactive modifier buttons normally stay
+	-- hidden, but reveal themselves while a meaningful cooldown is active.
+	-- Keep this optional and ignore the global cooldown/very short cooldowns.
+	local hiddenMode = ab.cfg and (ab.cfg.hiddenbarcooldowns or (ab.cfg.showmodifiercooldowns == false and 'off' or '10'))
+	if hiddenMode == 'all' then hiddenMode = '60' end
+	local showModifierCooldown = ab.cfg and ab.cfg.enablecooldowntext and hiddenMode ~= 'off'
+	-- v90 rollback: preserve v72's proven header-first modifier classification.
+	local currentModifier = (self.header and self.header:GetAttribute('state')) or ConsolePort:GetCurrentModifier() or ""
+	local isInactiveModifier = self.mod and self.mod ~= "" and self.mod ~= currentModifier
+	-- Tell CPCC only whether this particular rendered cooldown is a satellite.
+	-- Do not force a font size here; CPCC fits text to the actual target dimensions.
+	if self.cooldown then
+		self.cooldown.CPCCSatellite = showModifierCooldown and isInactiveModifier and true or false
+		-- v53: hand CPCC the geometry of the actual action button. The cooldown
+		-- subframe is only 8x8 in Minimal and 36x36 in Default, so it is not a
+		-- reliable measure of the visual button.
+		self.cooldown.CPCCOwnerWidth = self:GetWidth()
+		self.cooldown.CPCCOwnerHeight = self:GetHeight()
+		self.cooldown.CPCCOwnerScale = self:GetScale() or 1
+	end
+	local remaining = (start and duration) and ((start + duration) - GetTime()) or 0
+	local limit = (hiddenMode == '5' and 300) or (hiddenMode == '10' and 600) or (hiddenMode == '60' and 3600) or nil
+	local isTripleLayout = self.header and self.header:GetAttribute('isTriple')
+	local tripleSatelliteOK = not isTripleLayout
+	local satelliteEligible = showModifierCooldown and isInactiveModifier and tripleSatelliteOK and enable ~= 0 and duration and duration > 1.5
+		and not (limit and remaining > limit)
+
+	-- v100: Triple wings are permanent layout buttons, not cooldown satellites.
+	-- Never run the satellite fade/expiry lifecycle against them; doing so can
+	-- permanently hide an LT/RT wing after it becomes active.
+	if not isTripleLayout then
+		self:SetOnCooldown(satelliteEligible, self.isSquareMode and true or nil)
+	end
+
+	-- v100: restore the proven v93/v69 Minimal satellite lifecycle.  Suppress
+	-- modifier glyphs only while the cooldown satellite is actually visible;
+	-- CPCC itself remains independent and continues to own the countdown text.
+	if self.isSquareMode and satelliteEligible then
+		if self.hotkey then self.hotkey:Hide() end
+		for i = 1, 2 do
+			local modIcon = self['hotkey'..i]
+			if modIcon then modIcon:Hide() end
+		end
+	end
+
+	-- v104: keep Minimal cooldown satellites in front, but do NOT resize or
+	-- re-anchor them here. Wrapper.lua already applies the untouched rc2
+	-- Minimal/Show All child geometry (size, anchor offsets and square art).
+	-- A second geometry pass here changed edge-anchored overlap and broke art.
+	if self.isSquareMode and self.mod and self.mod ~= '' then
+		local primary = self:GetParent()
+		-- Layout setup already establishes the approved overlap order. Cooldown
+		-- events also fire in combat, when these action buttons are protected.
+		-- Keep their existing layers until PLAYER_REGEN_ENABLED reconciles them.
+		if not InCombatLockdown() and primary and primary.GetFrameLevel then
+			local baseLevel = (primary:GetFrameLevel() or 1) + 2
+			-- v113: LT+RT is deliberately topmost. LT and RT remain above the
+			-- main button but below the combined satellite at their shared edges.
+			local frontLevel = baseLevel + (self.mod == 'CTRL-SHIFT-' and 3 or 0)
+			self:SetFrameStrata(primary:GetFrameStrata())
+			self:SetFrameLevel(frontLevel)
+			if self.cooldown then
+				self.cooldown:SetFrameStrata(primary:GetFrameStrata())
+				self.cooldown:SetFrameLevel(frontLevel + 1)
+			end
+		end
+		-- v114: restore Blizzard's radial swipe on an ACTIVE square satellite.
+		-- The cooldown frame already follows this satellite's v113 frame level,
+		-- so LT+RT swipe precedence matches LT+RT button precedence. Kill the
+		-- surface outside an active satellite CD so hover-only/teardown cannot flash.
+		if self.cooldown then
+			-- Triple modifier clusters are permanent square action buttons, not
+			-- Minimal popup satellites. Keep their native radial cooldown visible.
+			self.cooldown:SetAlpha((isTripleLayout and duration and duration > 1.5 and enable ~= 0) and 0.60
+				or (satelliteEligible and 0.60 or 0))
+		end
+	elseif self.isSquareMode and self.cooldown then
+		-- v138: match Default/SliceMask's 0.60 maximum swipe opacity on the
+		-- primary Minimal button as well as its modifier satellites.
+		self.cooldown:SetAlpha(0.60)
+	end
+
+	-- v59: CPCC registration is mode-authoritative. Square layouts render on
+	-- the cooldown frame; Default/slice mode is registered by the slice hook on
+	-- the actual action button. Do not register both targets for one action.
+	if self.cooldown and ConsolePort and ConsolePort.CPCC and self.isSquareMode then
+		if enable ~= 0 and duration and duration > (ConsolePort.CPCC.db and ConsolePort.CPCC.db.minDuration or 1.5) then
+			ConsolePort.CPCC:StartCooldown(self.cooldown, start, duration)
+		else
+			ConsolePort.CPCC:StopCooldown(self.cooldown)
+		end
+	end
+end
+
+function lib:RefreshCooldowns()
+	for button in next, ButtonRegistry do
+		button:UpdateAction()
+		UpdateCooldown(button)
+		-- An explicit settings change must be able to remove cooldown-forced
+		-- satellite visibility immediately. Generic FadeOut intentionally honors
+		-- showGrid, so normalize non-hover/non-forced children here when the
+		-- feature is disabled.
+		if not (ab.cfg and ab.cfg.showmodifiercooldowns) and button.mod and button.mod ~= '' then
+			button.isOnCooldown = false
+			if not button.isGlowing and not button.forceShow and not button:IsMouseOver() then
+				UIFrameFadeRemoveFrame(button)
+				button:SetAlpha(0)
+			end
+		end
+	end
 end
 
 function StartFlash(self)
@@ -1374,7 +1674,24 @@ Action.HasAction               = function(self) return HasAction(self._state_act
 Action.GetActionText           = function(self) return GetActionText(self._state_action) end
 Action.GetTexture              = function(self) return GetActionTexture(self._state_action) end
 Action.GetCount                = function(self) return GetActionCount(self._state_action) end
-Action.GetCooldown             = function(self) return GetActionCooldown(self._state_action) end
+Action.GetCooldown             = function(self)
+	-- Use the same resolved modifier slot as the main bar and hover display.
+	local _, slot = self:GetAction()
+	local start, duration, enable = GetActionCooldown(slot)
+	if not duration or duration <= 0 then
+		local actionType, id = GetActionInfo(slot)
+		if actionType == 'spell' and id then
+			local spellStart, spellDuration, spellEnable = GetSpellCooldown(id)
+			if spellDuration and spellDuration > 0 then
+				return spellStart, spellDuration, spellEnable
+			end
+		end
+		-- Fall back only to the spell currently assigned to this page. An outgoing
+		-- humanoid spell must not keep a Cat/Bear satellite alive when that slot
+		-- now contains a different ability (or is empty).
+	end
+	return start, duration, enable
+end
 Action.IsAttack                = function(self) return IsAttackAction(self._state_action) end
 Action.IsEquipped              = function(self) return IsEquippedAction(self._state_action) end
 Action.IsCurrentlyActive       = function(self) return IsCurrentAction(self._state_action) end

@@ -353,7 +353,7 @@ function SliceMask:StartCooldown(button, start, duration)
     container._cooldownDuration = duration
     container._button           = button
 
-    container:SetScript('OnUpdate', function(self)
+    container:SetScript('OnUpdate', function(self, elapsed)
         local now       = GetTime()
         local remaining = (self._cooldownStart + self._cooldownDuration) - now
 
@@ -371,7 +371,6 @@ function SliceMask:StartCooldown(button, start, duration)
             return
         end
 
-        CPAPI.CPCC:OnUpdate(button:GetName(), elapsed)
 
         local progress  = remaining / self._cooldownDuration
         local size      = self._size

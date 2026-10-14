@@ -161,7 +161,7 @@ end
 -- may use custom metatables, which should still work with this approach.
 function Core:AddFrame(frame)
 	local widget = (type(frame) == "string" and _G[frame]) or (type(frame) == "table" and frame)
-	local name = (type(frame) == "string" and frame or type(frame) == "table" and frame:GetName())
+	local name = type(frame) == 'string' and frame or (IsValidFrame(widget) and widget.GetName and widget:GetName())
 	if IsValidFrame(widget) then
 		if ( not forbidden[widget] ) then
 			-- assert the frame isn't hooked twice
@@ -176,7 +176,7 @@ function Core:AddFrame(frame)
 			end
 		end
 		return true
-	else
+	elseif type(frame) == 'string' then
 		self:AddFrameTracker(frame)
 	end
 end
@@ -206,8 +206,8 @@ end
 
 function Core:UnforbidFrame(frame)
 	if forbidden[frame] then
-		self:AddFrame(frame)
 		forbidden[frame] = nil
+		self:AddFrame(frame)
 	end
 end
 

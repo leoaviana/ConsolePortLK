@@ -88,7 +88,7 @@ db.Controllers.XBOXELITE = {
 		['CP_R_DOWN'] = {
 			[''] 			= 'JUMP',
 			['SHIFT-']	 	= 'TARGETNEARESTENEMY',
-			['CTRL-']  		= 'EXTRAACTIONBUTTON1',
+			['CTRL-']  		= 'MULTIACTIONBAR4BUTTON5',
 			['CTRL-SHIFT-'] = 'CLICK ConsolePortUtilityToggle:LeftButton',
 		},
 		['CP_R_LEFT'] = {

@@ -1,4 +1,5 @@
 ## Interface: 30300
+## Version: 1.0.3
 ## Title: Console Port |cff739BD0LK|r |cff69ccf0UI|r Loot
 ## Notes: Replaces loot frame.
 ## RequiredDeps: ConsolePort

@@ -47,7 +47,7 @@ Help:AddPage('Pixel Bridge', 'Features', [[<HTML><BODY>
         How to use it
     </H2>
     <p align="left">
-        To activate the bridge, go to the <a href="run:ConsolePortOldConfig:OpenCategory('Config')">|cff69ccf0Settings|r</a> menu and check |cFFFF6600Enable Pixel Bridge|r.
+        Pixel Bridge is enabled by default in this community build. You can turn it off or back on from the <a href="run:ConsolePortOldConfig:OpenCategory('Config')">|cff69ccf0Settings|r</a> menu using |cFFFF6600Enable Pixel Bridge|r.
         <br/><br/>
         Once enabled, you will notice a tiny (8x1 pixel) flickering magenta block in the top-left corner of your screen. This is the "Beacon" that your controller software uses to lock onto the game window. 
         <br/><br/>

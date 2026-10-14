@@ -15,7 +15,7 @@ local TEX_PATH = [[Interface\AddOns\]]..an..[[\Textures\%s]]
 local NOT_BOUND_TOOLTIP = NOT_BOUND .. '\n' .. db.TUTORIAL.BIND.TOOLTIPCLICK
 ---------------------------------------------------------------
 local size, smallSize, tSize = 64, 46, 58
-local ofs, ofsB, fixA = 38, 21, 4
+local ofs, ofsB, fixA = 38, 28, 4
 ---------------------------------------------------------------
 local mods = {
 	[''] = {size = {size, size}},
@@ -246,7 +246,7 @@ function WrapperMixin:SetSize(new)
             local hotkey = button.hotkey or button.hotkey1
             if hotkey then
                 hotkey:ClearAllPoints()
-                hotkey:SetPoint("TOP", button, "TOP", 0, 10)
+                hotkey:SetPoint("TOP", button, "TOP", 0, button:GetHeight() * (10/45))
                 hotkey:SetAlpha(1)
                 hotkey:Show()
             end
@@ -259,16 +259,16 @@ function WrapperMixin:SetSize(new)
             end
             
             local b, t, o
-			local WING_SPREAD_DIAG = 0.6   -- affects SHIFT-/CTRL- (corner wings, uses `ofs`)
-			local WING_SPREAD_AXIS = 0.4 
+			local WING_SPREAD_DIAG = 0.24  -- v117: third identical outward step; 80% size unchanged
+			local WING_SPREAD_AXIS = 0.04 
             if mod == '' then
                 b, t = new, new
                 o = new * (82 / 64)
                 if button.shadow then button.shadow:SetSize(o, o) end
             else 
 				local scale = new / size
-				b = new * (46 / 64) 
-				t = new * (58 / 64) 
+				b = new * (46 / 64) * 0.80  -- v116: 80% overall satellite frame size relative to v114
+				t = new * (58 / 64) * 0.80 
 				if mod == 'CTRL-SHIFT-' then t = t * 0.9 end
 				
 				local spread = (mod == 'CTRL-SHIFT-') and WING_SPREAD_AXIS or WING_SPREAD_DIAG
@@ -276,10 +276,50 @@ function WrapperMixin:SetSize(new)
 				local pT = mods[mod] and mods[mod][button.orientation]
 				if pT then
 					local p, rel, x, y = unpack(pT)
-					button:ClearAllPoints()
-					button:SetPoint(p, main, rel, x * scale * spread, y * scale * spread)
+					-- v122: square Minimal wings use axis-centered anchors with wider lateral spacing so their
+					-- tangential angle is actually controllable. Keep the v117 outward
+					-- clearance, then add a modest lateral split toward either side.
+					-- v137: all final radial offsets are normalized to the 64-unit reference size
+					-- so the approved geometry scales proportionally with the configured button size.
+					if mod ~= 'CTRL-SHIFT-' then
+						local lateral = new * 0.55
+						local wingRadial = (ofs + fixA) * scale * spread - (new * (2 / 64))
+						if button.orientation == 'down' then
+							p, rel = 'TOP', 'BOTTOM'
+							x, y = (mod == 'SHIFT-' and lateral or -lateral), wingRadial
+						elseif button.orientation == 'up' then
+							p, rel = 'BOTTOM', 'TOP'
+							x, y = (mod == 'SHIFT-' and lateral or -lateral), -wingRadial
+						elseif button.orientation == 'left' then
+							p, rel = 'RIGHT', 'LEFT'
+							x, y = wingRadial, (mod == 'SHIFT-' and -lateral or lateral)
+						else
+							p, rel = 'LEFT', 'RIGHT'
+							x, y = -wingRadial, (mod == 'SHIFT-' and -lateral or lateral)
+						end
+						button:ClearAllPoints()
+						button:SetPoint(p, main, rel, x, y)
+					else
+						-- v133: percentage scaling of the legacy ofsB*0.04 axis offset only
+						-- changed LT+RT by fractions of a pixel. Use a direct edge-to-edge
+						-- radial gap so this satellite has a real, tunable visual control.
+						local centerRadial = new * (3 / 64)
+						if button.orientation == 'down' then
+							p, rel, x, y = 'TOP', 'BOTTOM', 0, centerRadial
+						elseif button.orientation == 'up' then
+							p, rel, x, y = 'BOTTOM', 'TOP', 0, -centerRadial
+						elseif button.orientation == 'left' then
+							p, rel, x, y = 'RIGHT', 'LEFT', centerRadial, 0
+						else
+							p, rel, x, y = 'LEFT', 'RIGHT', -centerRadial, 0
+						end
+						button:ClearAllPoints()
+						button:SetPoint(p, main, rel, x, y)
+					end
 					button:Show()
 				end
+				-- v104: retain stock modifier glyph visibility in Minimal. CPCC hides
+				-- glyphs only while an inactive cooldown countdown occupies the child.
 			end
             
             for _, parentKey in pairs(adjustTextures) do
@@ -292,13 +332,30 @@ function WrapperMixin:SetSize(new)
             end
             button:SetSize(b, b)
 
+			-- v113: combined LT+RT satellite wins overlap precedence.
+			-- This maximizes total visible satellite area: LT and RT each lose only
+			-- their single inward overlap edge, while LT+RT remains fully readable.
+			if mod ~= '' and main and main.GetFrameLevel then
+				local baseLevel = (main:GetFrameLevel() or 1) + 2
+				button:SetFrameStrata(main:GetFrameStrata())
+				button:SetFrameLevel(baseLevel + (mod == 'CTRL-SHIFT-' and 3 or 0))
+			end
+
 			if button.icon then
 				local useSquare = preset and preset.useSquareButtons
-				local ratio = useSquare and (40/45) or 1
-				local iSize = b * ratio
 				button.icon:ClearAllPoints()
-				button.icon:SetSize(iSize, iSize)
-				button.icon:SetPoint('CENTER', 0, 0)
+				if useSquare then
+					-- v109: keep SetSize and SetClassicBorders authoritative to the same
+					-- square-family geometry. Main icons use stock 40/45; satellites use
+					-- Match untouched rc2 square modifier artwork exactly: 40/45.
+					local ratio = (40/45)
+					button.icon:SetSize(b * ratio, b * ratio)
+					button.icon:SetPoint('CENTER', button, 'CENTER', 0, 0)
+					button.icon:SetTexCoord(0, 1, 0, 1)
+				else
+					button.icon:SetSize(b, b)
+					button.icon:SetPoint('CENTER', 0, 0)
+				end
 			end
         end
         
@@ -341,6 +398,15 @@ function WrapperMixin:UpdateOrientation(orientation)
 
         -- Apply mask/swipe for non-main modifier buttons
         if mod ~= '' and not button.isMainButton then
+            -- v98: square layouts use the native icon directly. If this button
+            -- previously lived in a sliced/round layout, remove that stale
+            -- ScrollFrame renderer; otherwise it can remain on top of the real
+            -- icon at its old tiny dimensions and make icon:SetSize() appear
+            -- completely ineffective.
+            if SliceMask and button.isSquareMode then
+                button._slicePending = nil
+                SliceMask:Remove(button)
+            end
             local mask  = masks[mod] and masks[mod][orientation]
             local swipe = swipes[mod] and swipes[mod][orientation]
 
@@ -404,33 +470,46 @@ function WrapperMixin:SetClassicBorders(enabled)
         if useSquare then
             if button.Shadow then button.Shadow:SetTexture(nil) end
             if button.Mask then button.Mask:Hide() end
+            -- v108: square-family children must never retain the Default-family
+            -- sliced/crescent renderer after a layout/style refresh.
+            if mod ~= '' and ab.libs.slicemask then
+                button._slicePending = nil
+                ab.libs.slicemask:Remove(button)
+            end
 
             button.NormalTexture:ClearAllPoints()
-            button.NormalTexture:SetPoint("CENTER", button, "CENTER", 4, -2)
+            button.NormalTexture:SetPoint("CENTER", button, "CENTER", bw * (4/45), bw * (-2/45))
             button.NormalTexture:SetTexture(TEX:format("SquareNormal"))
             button.NormalTexture:SetTexCoord(0, 1, 0, 1)
             button.NormalTexture:SetSize(bw * (52/45), bw * (51/45))
 
             button.PushedTexture:ClearAllPoints()
-            button.PushedTexture:SetPoint("CENTER", button, "CENTER", 4, -2)
+            button.PushedTexture:SetPoint("CENTER", button, "CENTER", bw * (4/45), bw * (-2/45))
             button.PushedTexture:SetTexture(isTriple and TEX:format("SquareNormal") or TEX:format("SquarePushed"))
             button.PushedTexture:SetSize(bw * (52/45), bw * (51/45))
 
             button.HighlightTexture:ClearAllPoints()
             button.HighlightTexture:SetSize(bw * (46/45), bw * (45/45))
-            button.HighlightTexture:SetPoint("CENTER", button, "CENTER", 1, 0)
+            button.HighlightTexture:SetPoint("CENTER", button, "CENTER", bw * (1/45), 0)
             button.HighlightTexture:SetTexture(TEX:format("SquareHilite"))
             button.HighlightTexture:SetTexCoord(0, 1, 0, 1)
 
             button.CheckedTexture:ClearAllPoints()
             button.CheckedTexture:SetSize(bw * (46/45), bw * (45/45))
-            button.CheckedTexture:SetPoint("CENTER", button, "CENTER", 1, 0)
+            button.CheckedTexture:SetPoint("CENTER", button, "CENTER", bw * (1/45), 0)
             button.CheckedTexture:SetTexture(not isTriple and TEX:format("SquareHilite") or nil)
 
+            -- v108: main square buttons retain the stock 40/45 inset. Modifier
+            -- satellites use the full child square; the later ActionButton icon
+            -- crop removes spell-texture edge bleed without shrinking the art.
             local iconSize = bw * (40/45)
             button.icon:ClearAllPoints()
             button.icon:SetSize(iconSize, iconSize)
-            button.icon:SetPoint("CENTER", button, "CENTER", 0, 0)
+            -- v138: square border art is right-biased relative to the button center.
+            -- Keep the approved 40/45 icon size, but nudge Minimal satellites right
+            -- by two reference units to make the right-edge sliver correction clearly testable.
+            local iconOffsetX = (mod ~= '') and (bw * (2/45)) or 0
+            button.icon:SetPoint("CENTER", button, "CENTER", iconOffsetX, 0)
 
             button.emptyIcon = [[Interface\AddOns\ConsolePortBar\Textures\ability-empty2]]
 
@@ -438,8 +517,10 @@ function WrapperMixin:SetClassicBorders(enabled)
             button.cooldown:Show()
             button.cooldown:ClearAllPoints()
             button.cooldown:SetAllPoints(button)
-            button.cooldown:SetFrameLevel(button:GetFrameLevel() + 5)
-            button.cooldown:SetFrameStrata("MEDIUM")
+            -- v109: main Blizzard swipe must stay below front-stacked satellites.
+            -- Satellite swipe surfaces are alpha-zero elsewhere; main swipe remains visible.
+            button.cooldown:SetFrameLevel(button:GetFrameLevel() + (mod == '' and 1 or 5))
+            button.cooldown:SetFrameStrata(button:GetFrameStrata())
 
             if button.roundcd then
                 button.roundcd:Hide()
@@ -629,7 +710,7 @@ local function CreateMainShadowFrame(self)
 	-- create this as a separate frame so that drop shadow doesn't overlay modifiers
 	-- note: shadow is child of bar, not of button
 	local shadow = CreateFrame('Frame', self:GetName()..'_SHADOW', ab.bar, 'CPUIActionButtonMainShadowTemplate')
-	shadow:SetPoint('CENTER', self, 'CENTER', 0, -6)
+	shadow:SetPoint('CENTER', self, 'CENTER', 0, -(self:GetHeight() * (6/64)))
 	return shadow
 end
 ---------------------------------------------------------------

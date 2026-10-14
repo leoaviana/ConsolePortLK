@@ -81,7 +81,7 @@ db.Controllers.STEAM = {
 		['CP_R_DOWN'] = {
 			[''] 			= 'JUMP',
 			['SHIFT-']	 	= 'TARGETNEARESTENEMY', -- TARGETSCANENEMY not available on 3.3.5a
-			['CTRL-']  		= 'EXTRAACTIONBUTTON1',
+			['CTRL-']  		= 'MULTIACTIONBAR4BUTTON5',
 			['CTRL-SHIFT-'] = 'CLICK ConsolePortUtilityToggle:LeftButton',
 		},
 		['CP_R_LEFT'] = {

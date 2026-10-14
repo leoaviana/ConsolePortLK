@@ -4,6 +4,9 @@ local db = ab.data
 local Bar = ab.bar
 local WindowMixin, Generic, Layout, Button, Position, Color, Bool, Profiler, Preset = {}, {}, {}, {}, {}, {}, {}, {}, {}
 
+-- Editor-only geometry for reversible toggles; never inserted while unchecked.
+local disabledGeometry = setmetatable({}, {__mode = 'k'})
+
 local VALID_POINTS = {
 	TOP = true, 
 	LEFT = true, TOPLEFT = true, BOTTOMLEFT = true,
@@ -33,67 +36,77 @@ end
 
 function Button:OnShow()
 	local entry = self.Layout.cfg[self.Binding]
-	local point = entry and entry.point
-	local size = entry and entry.size
-	local dir = entry and entry.dir
+	local activePreset = (ab.cfg and ab.cfg.activePreset) or (ConsolePortBarSetup and ConsolePortBarSetup.activePreset)
+	-- v151: checkbox state is once again the official/v140 contract:
+	-- a live layout entry exists = checked; absent = unchecked.
+	-- Fallback preset geometry is editor display data only and is never inserted
+	-- into the live layout until the user checks the box.
+	local cached = disabledGeometry[self.Layout.cfg]
+	local display = entry or (cached and cached[self.Binding]) or ab:GetPresetButtonLayout(activePreset, self.Binding)
+	local point = display and display.point
+	local size = display and display.size
+	local dir = display and display.dir
 	self:SetChecked(entry and true or false)
 
+	if dir then self.direction:SetText(dir) else self.direction:SetText('') end
+	if size then self.size:SetNumber(size) else self.size:SetText('') end
+	if point then
+		self.point:SetText(point[1])
+		self.xOffset:SetText(point[2] or 0)
+		self.yOffset:SetText(point[3] or 0)
+	else
+		self.point:SetText('')
+		self.xOffset:SetText('')
+		self.yOffset:SetText('')
+	end
+
 	if self.Wrapper then
-		if dir then
-		--	self.direction:Enable()
-			self.direction:SetText(dir)
-			self.Wrapper:UpdateOrientation(dir)
-		else
-		--	self.direction:Disable()
-			self.direction:SetText('')
-		end
-		if size then
-		--	self.size:Enable()
-			self.size:SetNumber(size)
-			--self.Wrapper:SetSize(size)
-		else
-		--	self.size:Disable()
-			self.size:SetText('')
-		end
-		if point then
+		if dir then self.Wrapper:UpdateOrientation(dir) end
+		if entry and point then
 			self.Wrapper:SetPoint(unpack(point))
 			self.Wrapper:Show()
-		--	self.point:Enable() self.xOffset:Enable() self.yOffset:Enable()
-			self.point:SetText(point[1]) self.xOffset:SetText(point[2]) self.yOffset:SetText(point[3])
 		else
-			self.Wrapper:SetPoint()
 			self.Wrapper:Hide()
-		--	self.size:Disable() self.point:Disable() self.xOffset:Disable() self.yOffset:Disable()
-			self.point:SetText('') self.xOffset:SetText('') self.yOffset:SetText('')
 		end
 	end
 end
 
 function Button:OnClick()
+	local cache = disabledGeometry[self.Layout.cfg] or {}
+	disabledGeometry[self.Layout.cfg] = cache
 	if not self.Layout.cfg[self.Binding] then
-		self.Layout.cfg[self.Binding] = ab:GetDefaultButtonLayout(self.Binding) or { point = {'CENTER', 0, 0}, dir = 'down', size = 64}
+		local activePreset = (ab.cfg and ab.cfg.activePreset) or (ConsolePortBarSetup and ConsolePortBarSetup.activePreset)
+		self.Layout.cfg[self.Binding] = (cache[self.Binding] and db.table.copy(cache[self.Binding]))
+			or ab:GetPresetButtonLayout(activePreset, self.Binding)
+			or ab:GetDefaultButtonLayout(self.Binding)
+			or { point = {'CENTER', 0, 0}, dir = 'down', size = 64}
+		self.Layout.cfg[self.Binding].hidden = nil
 	else
+		cache[self.Binding] = db.table.copy(self.Layout.cfg[self.Binding])
 		self.Layout.cfg[self.Binding] = nil
 	end
+	local window = self.Layout and self.Layout:GetParent()
+	if window then window.layoutReloadPending = true end
 	self:OnShow()
 end
 
 function Button:UpdateButton(id, setting, value)
 	local entry = self.Layout.cfg[self.Binding]
 	local settings = entry and entry[setting]
+	local oldValue = type(settings) == 'table' and settings[id] or settings
+	if oldValue == value then return end
 	if type(settings) == 'table' then
 		settings[id] = value
 	else
 		entry[setting] = value
 	end
-	if entry.dir then
-		self.Wrapper:UpdateOrientation(entry.dir)
-	end
-	if entry.point then
-		self.Wrapper:SetPoint(unpack(entry.point))
-	end
-	if entry.size then
-		self.Wrapper:SetSize(entry.size)
+	-- v129: position/size/direction edits need a clean reload after Save.
+	local window = self.Layout and self.Layout:GetParent()
+	if window then window.layoutReloadPending = true end
+	if self.Wrapper then
+		if entry.dir then self.Wrapper:UpdateOrientation(entry.dir) end
+		if entry.point then self.Wrapper:SetPoint(unpack(entry.point)) end
+		if entry.size then self.Wrapper:SetSize(entry.size) end
 	end
 end
 
@@ -265,8 +278,11 @@ function Layout:OnShow()
 	self.cfg = ab.cfg.layout
 	for _, button in ipairs(self.Buttons) do
 		button:Show()
+		if button.Binding and button.OnShow then button:OnShow() end
 	end
-	self.Popout:Show()
+	-- Keep legacy Popout object available to Action Bar internals but out of the
+	-- integrated settings navigation.
+	if self.Popout then self.Popout:Hide() end
 	self:Refresh(#self.Buttons)
 end
 
@@ -349,6 +365,7 @@ end
 function Preset:SetData(name, cfg, class)
 	local viewer = self.Viewer
 	self.cfg = db.table.copy(cfg)
+    self.presetName = name
 	color = RAID_CLASS_COLORS[select(2,UnitClass('player'))]
 	escapeColor = string.format("|cff%02x%02x%02x", color.r*255, color.g*255, color.b*255) 
 
@@ -388,7 +405,55 @@ function Preset:SetData(name, cfg, class)
 end
 
 function Preset:OnClick()
-	Bar:OnLoad(db.table.copy(self.cfg), true)
+    -- v79: layout changes are supported through a UI reload. Remember that a
+    -- preset was selected so Save can offer Reload Now / Close.
+    if self.Layout and self.Layout:GetParent() then
+        self.Layout:GetParent().layoutReloadPending = true
+    end
+	-- Presets define presentation/layout, but should not silently reset the
+	-- user's functionality/display toggles. Preserve the current boolean
+	-- preferences before loading the selected preset.
+	-- v141: each named preset keeps its own edited presentation/layout state.
+	-- Cache the preset we are leaving, then restore this preset's last edited copy
+	-- instead of recreating factory geometry every time the user switches bars.
+	ConsolePortBarSetup.presetProfiles = ConsolePortBarSetup.presetProfiles or {}
+	local activePreset = ConsolePortBarSetup.activePreset
+	if activePreset and ab.cfg then
+		local saved = db.table.copy(ab.cfg)
+		saved.presetProfiles = nil
+		saved.activePreset = nil
+		ConsolePortBarSetup.presetProfiles[activePreset] = saved
+	end
+	local cfg = ConsolePortBarSetup.presetProfiles[self.presetName]
+		and db.table.copy(ConsolePortBarSetup.presetProfiles[self.presetName])
+		or db.table.copy(self.cfg)
+	local profiles = ConsolePortBarSetup.presetProfiles
+    -- v81: cooldown preferences are user settings, not layout-preset defaults.
+    -- Preserve them across every preset switch; only class art intentionally
+    -- changes with the selected layout.
+    cfg.enablecooldowntext = ab.cfg.enablecooldowntext
+    cfg.hiddenbarcooldowns = ab.cfg.hiddenbarcooldowns
+    cfg.showmodifiercooldowns = ab.cfg.showmodifiercooldowns
+	for _, setting in pairs(ab:GetBooleanSettings()) do
+		if setting.cvar then
+            -- v74: class-art is a preset-selection default rather than a
+            -- cross-preset preference. Roleplay starts checked; every other
+            -- preset starts unchecked. The user can still change it afterward
+            -- and Save that active layout normally.
+            if setting.cvar ~= 'showart' then
+                cfg[setting.cvar] = setting.toggle
+            end
+		end
+	end
+    -- Only apply the factory class-art default the first time this preset is used.
+	if not profiles[self.presetName] then
+		cfg.showart = (self.presetName == 'Roleplay') and true or false
+	end
+	cfg.presetProfiles = profiles
+	cfg.activePreset = self.presetName
+	Bar:OnLoad(cfg, true)
+
+
 	self.Layout:Hide()
 	self.Layout:Show()
 end
@@ -490,7 +555,13 @@ function WindowMixin:Default()
 end
 
 function WindowMixin:Save()
-	Bar:OnLoad(ab.cfg)
+    -- v76: the selected preset has already been applied by Preset:OnClick via
+    -- the benign live-preview path. Do not tear down and reconstruct the entire
+    -- secure wrapper tree a second time just because Save was pressed. That
+    -- duplicate destructive load was the common trigger for incomplete layouts,
+    -- mixed main/satellite CPCC roles, and the v75 multi-second freeze.
+    -- Re-apply presentation non-destructively so the saved UI state is current.
+    Bar:OnLoad(ab.cfg, true)
 
 	local isIdentical, allowExport = db.table.compare, true
 	for _, preset in pairs(ab:GetPresets()) do
@@ -508,6 +579,34 @@ function WindowMixin:Save()
 			end
 		end
 	end
+
+    -- v153: compare final values with the loaded runtime, not click history.
+    -- Keep this baseline until reload: dismissing a prompt does not apply secure
+    -- layout changes, and navigating between sections must not reset it.
+    local baseline = ab.reloadBaseline or self.Backup or ab.cfg
+    local needsLayoutReload = false
+    for _, key in ipairs({'layout', 'isTriple', 'dividers', 'width', 'classicBorders', 'useSquareButtons'}) do
+        local before, after = baseline[key], ab.cfg[key]
+        local same = type(before) == 'table' and type(after) == 'table'
+            and db.table.compare(before, after) or before == after
+        if not same then needsLayoutReload = true end
+    end
+    local needsCooldownReload = ab.cfg.enablecooldowntext and not baseline.enablecooldowntext
+    self.layoutReloadPending = nil
+    self.cooldownReloadPending = nil
+    if needsLayoutReload or needsCooldownReload then
+        StaticPopupDialogs['CONSOLEPORT_BARLAYOUT_RELOAD'] = StaticPopupDialogs['CONSOLEPORT_BARLAYOUT_RELOAD'] or {
+            text = 'One or more of the changes you\nhave made require a ReloadUI.',
+            button1 = ACCEPT,
+            button2 = CANCEL,
+            OnAccept = function() ReloadUI() end,
+            timeout = 0,
+            whileDead = true,
+            hideOnEscape = false,
+            preferredIndex = 3,
+        }
+        StaticPopup_Show('CONSOLEPORT_BARLAYOUT_RELOAD')
+    end
 
 	return nil, 'Bar', ( allowExport and ab.cfg)
 end
@@ -538,7 +637,74 @@ function WindowMixin:CreateLayoutModule()
 		[19] = 'Art';
 	}
 
+    local function CreateCooldownControls()
+    -- v80: cooldown controls sit between Functionality and Experience/watch bars.
+    layout:CreateHeader({val = 'Cooldowns', x = 0, data = 'Text', type = 'FontString', setup = {nil, 'ARTWORK', 'FriendsFont_Large'}})
+    local cdRow = CreateFrame('Frame', nil, layout.Child)
+    cdRow:SetSize(530, 28)
+    local cdToggle = layout:CreateBooleanSwitch('enablecooldowntext', 'Show cooldowns')
+    cdToggle:SetPoint('LEFT', cdRow, 'LEFT', 16, 0)
+    layout:AddButton(cdRow)
+
+    local hiddenLabel = CreateFrame('Frame', nil, layout.Child)
+    hiddenLabel:SetSize(530, 24)
+    hiddenLabel.text = hiddenLabel:CreateFontString(nil, 'OVERLAY', 'FocusFontSmall')
+    hiddenLabel.text:SetPoint('LEFT', 16, 0)
+    hiddenLabel.text:SetText('Show ability cooldowns on inactive bars:')
+    layout:AddButton(hiddenLabel)
+
+    local modeRow = CreateFrame('Frame', nil, layout.Child)
+    modeRow:SetSize(530, 30)
+    local modes = {
+        {'60', '≤ 1h'}, {'10', '≤ 10m'}, {'5', '≤ 5m'}, {'off', 'Off'},
+    }
+    local radios = {}
+    local function RefreshModes()
+        local enabled = ab.cfg.enablecooldowntext and true or false
+        local mode = ab.cfg.hiddenbarcooldowns or (ab.cfg.showmodifiercooldowns == false and 'off' or '10')
+        if mode == 'all' then mode = '60' end
+        ab.cfg.hiddenbarcooldowns = mode
+        ab.cfg.showmodifiercooldowns = enabled and mode ~= 'off'
+        hiddenLabel.text:SetTextColor(1, 1, 1)
+        for _, r in ipairs(radios) do
+            r:SetChecked(r.mode == mode)
+            if enabled then r:Enable(); r.text:SetTextColor(1, .82, 0) else r:Disable(); r.text:SetTextColor(.5,.5,.5) end
+        end
+    end
+    for i, data in ipairs(modes) do
+        local r = CreateFrame('CheckButton', nil, modeRow, 'UIRadioButtonTemplate')
+        r:SetSize(20,20)
+        r:SetPoint('LEFT', 16 + (i-1)*120, 0)
+        r.mode = data[1]
+        r.text = r:CreateFontString(nil, 'OVERLAY', 'FocusFontSmall')
+        r.text:SetPoint('LEFT', r, 'RIGHT', 2, 0)
+        r.text:SetText(data[2])
+        r:SetScript('OnClick', function(self)
+            if not ab.cfg.enablecooldowntext then RefreshModes(); return end
+            ab.cfg.hiddenbarcooldowns = self.mode
+            ab.cfg.showmodifiercooldowns = self.mode ~= 'off'
+            ab.bar:OnLoad(ab.cfg, true)
+            RefreshModes()
+        end)
+        radios[#radios+1] = r
+    end
+    local oldCDClick = cdToggle.OnClick
+    cdToggle:SetScript('OnClick', function(toggle)
+        local wasEnabled = ab.cfg.enablecooldowntext and true or false
+        Bool.OnClick(toggle)
+        if not wasEnabled and ab.cfg.enablecooldowntext then
+            -- Enabling CPCC requires one clean renderer initialization.
+            self.cooldownReloadPending = true
+        end
+        RefreshModes()
+    end)
+    modeRow:SetScript('OnShow', RefreshModes)
+    cdToggle:SetScript('OnShow', function(self) Bool.OnShow(self); RefreshModes() end)
+    layout:AddButton(modeRow)
+    end
+
 	for i=1, #info, 2 do
+        if i == 11 then CreateCooldownControls() end
 		local header = subHeaders[i]
 		if header then
 			layout:CreateHeader({val = header, x = 0, data = 'Text', type = 'FontString', setup = {nil, 'ARTWORK', 'FriendsFont_Large'}})
@@ -556,6 +722,8 @@ function WindowMixin:CreateLayoutModule()
 		end
 		layout:AddButton(frame)
 	end 
+
+
 	
 	layout:CreateHeader({val = 'Bar Scale:', x = 0, data = 'Text', type = 'FontString', setup = {nil, 'ARTWORK', 'FriendsFont_Large'}})
 

@@ -194,6 +194,8 @@ function ConsolePort:CalibrateController(reset)
 			cbF:Hide()
 		end)
 
+		local CalibrationOnUpdate
+
 		cbF:SetPoint("CENTER", 0,0)
 		cbF:SetFrameStrata("DIALOG")
 		cbF:SetSize(580, 416)
@@ -209,6 +211,20 @@ function ConsolePort:CalibrateController(reset)
 					db('skipGuideBtn', true)
 				else
 					db('skip'.. cbF.Skip.gButton, true)
+				end
+
+				-- A rejected/abandoned modifier remap disables keyboard input and
+				-- clears OnUpdate while waiting for ReloadUI. If the player chooses
+				-- Skip instead, cancel that pending state and return the wizard to
+				-- its normal calibration loop so Skip can actually advance.
+				cbF.Reload:Hide()
+				cbF.Status:SetAlpha(0)
+				cbF.VAL = nil
+				cbF.SET = false
+				cbF.Confirm:SetText("")
+				cbF:EnableKeyboard(true)
+				if CalibrationOnUpdate then
+					cbF:SetScript("OnUpdate", CalibrationOnUpdate)
 				end
 				self:CheckCalibration(true)
 			end)
@@ -546,7 +562,7 @@ function ConsolePort:CalibrateController(reset)
 			self.VAL = key
 		end)
 
-		cbF:SetScript("OnUpdate", function(self, elapsed)
+		CalibrationOnUpdate = function(self, elapsed)
 			if 	(ConsolePortSplashFrame and ConsolePortSplashFrame:IsVisible()) or
 				(HelpFrame and HelpFrame:IsVisible()) then
 				self:Hide()
@@ -579,7 +595,8 @@ function ConsolePort:CalibrateController(reset)
 					self:Hide()
 				end
 			end
-		end)
+		end
+		cbF:SetScript("OnUpdate", CalibrationOnUpdate)
 
 		cbF:SetScript("OnShow", function(self)
 			CPAPI.SetShown(self.StickInput, db('stickRadialType') == 0)

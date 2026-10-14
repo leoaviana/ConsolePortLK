@@ -43,7 +43,7 @@ Bar:Execute([[
         local base = self:GetAttribute("baseScale") or 1.0
 
         if (state == myMod or (state == 'CTRL-SHIFT-' and myMod == '')) and not self:GetAttribute("static") then 
-            -- Active cluster: 105% of its base size
+            -- Active cluster: 105% of its base size.
             self:SetScale(base * 1.05)
         else 
             -- Inactive cluster: its natural base size
@@ -124,6 +124,57 @@ end
 
 function Bar:FadeIn(alpha)
 	db.UIFrameFadeIn(self, .25, alpha or 0, 1)
+end
+
+function Bar:PrimeCurrentActionPage()
+	if InCombatLockdown() then return end
+	-- A character can enter the world already in Prowl/form. In that case no
+	-- initial stance transition occurs to seed the secure children with the
+	-- existing bonus page. Explicitly run the same secure page update once after
+	-- login so the first stealth exit has a fully initialized Prowl action.
+	self:Execute([[
+		control:RunAttribute('UpdateActionBar')
+		local held = self:GetAttribute('state-modifier') or self:GetAttribute('state') or ''
+		self:SetAttribute('state', held)
+		control:ChildUpdate('state', held)
+	]])
+	self:RefreshModifierCooldowns()
+end
+
+function Bar:ReconcileFormMenuState()
+    if InCombatLockdown() then return end
+    -- Reuse the proven page/child refresh, but read live keys instead of a
+    -- cached modifier state after an external menu cancels the player's form.
+    self:Execute([[
+        control:RunAttribute('UpdateActionBar')
+        local held = SecureCmdOptionParse('[mod:ctrl,mod:shift] CTRL-SHIFT-; [mod:ctrl] CTRL-; [mod:shift] SHIFT-;') or ''
+        self:SetAttribute('state-modifier', held)
+        self:SetAttribute('state', held)
+        control:ChildUpdate('state', held)
+        if self:GetAttribute('isTriple') then
+            local count = self:GetAttribute('childCount') or 0
+            for i = 1, count do
+                local child = self:GetFrameRef('child'..i)
+                if child then control:RunFor(child, UpdateTripleScale, held) end
+            end
+            control:CallMethod('UpdateDividerFocus', held)
+        end
+    ]])
+    self:RefreshModifierCooldowns()
+end
+
+function Bar:RefreshModifierCooldowns()
+	if ab.libs.acb and ab.libs.acb.RefreshCooldowns then
+		ab.libs.acb:RefreshCooldowns()
+		-- WotLK can publish the new action/page identity one frame after the
+		-- secure state transition. Reconcile once more after that propagation
+		-- so first-use cooldowns behave like subsequent uses.
+		CPAPI.TimerAfter(0.05, function()
+			if ab.libs.acb and ab.libs.acb.RefreshCooldowns then
+				ab.libs.acb:RefreshCooldowns()
+			end
+		end)
+	end
 end
 
 function Bar:FadeOut(alpha)
@@ -251,6 +302,26 @@ end
 function Bar:SetupShoulderButtons()
     local registry = ab.libs.registry
     local layout = ab.cfg and ab.cfg.layout
+
+    -- v141: Triple shoulder strip geometry belongs to the saved layout.
+    -- Do not recompute/reverse positions from binding availability on load.
+    -- Xbox semantics: CP_T1=LB, CP_M1=LT, CP_M2=RT, CP_T2=RB.
+    -- CP_T3/T4 are only dummy visual carriers for LT/RT when those modifier
+    -- controls have no independent action binding.
+    if ab.cfg and ab.cfg.isTriple and layout then
+        for _, id in ipairs({'CP_T1','CP_T3','CP_T4','CP_T2'}) do
+            local data = layout[id]
+            local wrapper = registry[id]
+            local btn = wrapper and wrapper['']
+            if btn then
+                if data and not data.hidden then
+                    btn:Show(); btn:SetAlpha(1)
+                else
+                    btn:Hide(); btn:SetAlpha(0)
+                end
+            end
+        end
+    end
     local shoulderMap = {
         ['CP_T3'] = 'CP_M1',
         ['CP_T4'] = 'CP_M2',
@@ -318,8 +389,37 @@ function Bar:OnLoad(cfg, benign)
     end
 	
     local r, g, b = db.Atlas.GetNormalizedCC()
+    -- v153: migrate legacy hidden records to the v140 presence/absence contract.
+    -- Preset geometry remains available separately to the editor.
+    if cfg.layout then
+        for binding, entry in pairs(cfg.layout) do
+            if entry.hidden == true then cfg.layout[binding] = nil end
+        end
+    end
+    if not ab.reloadBaseline then
+        ab.reloadBaseline = db.table.copy(cfg)
+    end
     ab.cfg = cfg
     ConsolePortBarSetup = cfg
+    -- v142: retain preset identity with the saved profile. This lets the
+    -- settings GUI seed never-before-enabled buttons from the correct preset.
+    if not cfg.activePreset then
+        -- v143: old SavedVariables predate activePreset and often contain user
+        -- edits, so exact table comparison cannot identify them. Distinctive
+        -- layout flags identify the square presets safely.
+        if cfg.isTriple then
+            cfg.activePreset = 'Crossbar: Triple'
+        elseif cfg.useSquareButtons then
+            cfg.activePreset = 'Crossbar: Minimal'
+        else
+            for presetName, presetCfg in pairs(ab:GetPresets()) do
+                if db.table.compare(cfg.layout or {}, presetCfg.layout or {}) then
+                    cfg.activePreset = presetName
+                    break
+                end
+            end
+        end
+    end
     self:SetScale(cfg.scale or 1)
 
     -- Bar Visibility Driver
@@ -336,6 +436,13 @@ function Bar:OnLoad(cfg, benign)
 
     if CPAPI.CPCC then
         if cfg.enablecooldowntext then CPAPI.CPCC:Enable() else CPAPI.CPCC:Disable() end
+    end
+
+    -- Re-evaluate every cooldown immediately when bar options are applied.
+    -- This restores both satellite visibility and numerical cooldown text when
+    -- the option is re-enabled while an ability is already cooling down.
+    if ab.libs.acb and ab.libs.acb.RefreshCooldowns then
+        ab.libs.acb:RefreshCooldowns()
     end
 
     local visDriver = cfg.combathide and '[nocombat] show; hide' or '[combat][nocombat] show; hide'
@@ -392,6 +499,7 @@ function Bar:OnLoad(cfg, benign)
 
 	local buttonIndex = 0
     for id, layoutData in pairs(layout) do
+        if not layoutData.hidden then
         local baseID = id:match("^(CP_[^_]+_[^_]+)") or id
         
         -- Get or create the logic wrapper for the binding group
@@ -438,6 +546,7 @@ function Bar:OnLoad(cfg, benign)
         wrapper:SetClassicBorders(classicBorders)
         wrapper:SetSwipeColor(unpack(cfg.swipeRGB or {r, g, b, 1}))
         wrapper:SetBorderColor(unpack(cfg.borderRGB or {1, 1, 1, 1}))
+        end
     end
 
 	-- Strip _childupdate-state from non-promoted buttons only
@@ -549,17 +658,17 @@ function Bar:SetupTripleClickVisuals()
 			-- Create fake pushed on the main button too for nomod/CTRL-SHIFT- clicks
 			local fakeMainPushed = mainButton:CreateTexture(nil, "OVERLAY")
 			fakeMainPushed:ClearAllPoints()
-			fakeMainPushed:SetPoint("CENTER", mainButton, "CENTER", 4, -2)
+			fakeMainPushed:SetPoint("CENTER", mainButton, "CENTER", mainButton:GetWidth() * (4/45), mainButton:GetHeight() * (-2/45))
 			fakeMainPushed:SetTexture(TEX:format("SquarePushed"))
-			fakeMainPushed:SetSize(52, 51)
+			fakeMainPushed:SetSize(mainButton:GetWidth() * (52/45), mainButton:GetHeight() * (51/45))
 			fakeMainPushed:SetAlpha(0)
 			mainButton.FakePushed = fakeMainPushed
 
 			-- Create fake checked on the main button too for nomod/CTRL-SHIFT- clicks
 			local fakeMainChecked = mainButton:CreateTexture(nil, "OVERLAY")
 			fakeMainChecked:ClearAllPoints() 
-			fakeMainChecked:SetSize(46, 45) 
-			fakeMainChecked:SetPoint("CENTER", mainButton, "CENTER", 1, 0)
+			fakeMainChecked:SetSize(mainButton:GetWidth() * (46/45), mainButton:GetHeight() * (45/45)) 
+			fakeMainChecked:SetPoint("CENTER", mainButton, "CENTER", mainButton:GetWidth() * (1/45), 0)
 			fakeMainChecked:SetTexture(TEX:format("SquareHilite"))
 			fakeMainChecked:SetBlendMode("ADD")
 			fakeMainChecked:SetAlpha(0)
@@ -576,16 +685,16 @@ function Bar:SetupTripleClickVisuals()
 					for _, shim in pairs(shims) do
 						local fake = shim:CreateTexture(nil, "OVERLAY")
 						fake:ClearAllPoints()
-						fake:SetPoint("CENTER", shim, "CENTER", 4, -2)
+						fake:SetPoint("CENTER", shim, "CENTER", shim:GetWidth() * (4/45), shim:GetHeight() * (-2/45))
 						fake:SetTexture(TEX:format("SquarePushed"))
-						fake:SetSize(52, 51)
+						fake:SetSize(shim:GetWidth() * (52/45), shim:GetHeight() * (51/45))
 						fake:SetAlpha(0)
 						shim.FakePushed = fake
 
 						local fakeChecked = mainButton:CreateTexture(nil, "OVERLAY")
 						fakeChecked:ClearAllPoints() 
-						fakeChecked:SetSize(46, 45) 
-						fakeChecked:SetPoint("CENTER", shim, "CENTER", 1, 0)
+						fakeChecked:SetSize(shim:GetWidth() * (46/45), shim:GetHeight() * (45/45)) 
+						fakeChecked:SetPoint("CENTER", shim, "CENTER", shim:GetWidth() * (1/45), 0)
 						fakeChecked:SetTexture(TEX:format("SquareHilite"))
 						fakeChecked:SetBlendMode("ADD")
 						fakeChecked:SetAlpha(0)
@@ -632,6 +741,10 @@ for name, script in pairs({
 	['_onstate-modifier'] = [[
 		self:SetAttribute('state', newstate)
 		control:ChildUpdate('state', newstate)
+		-- Satellite cooldown visibility depends on which modifier layer is
+		-- currently displayed. Re-evaluate immediately on press/release instead
+		-- of waiting for the next spell/action cooldown event.
+		control:CallMethod('RefreshModifierCooldowns')
 
 		if(self:GetAttribute('isTriple')) then 
 			-- Modifier buttons visual scale update
@@ -653,14 +766,31 @@ for name, script in pairs({
 		control:RunAttribute('UpdateActionBar') 
 	]],
 	['_onstate-page'] = [[
+		-- A stance/stealth page change must not visually drop an actively-held
+		-- LT/RT modifier layer. Update the underlying action page, then explicitly
+		-- re-assert the secure modifier state for the children.
 		control:RunAttribute('UpdateActionBar')
+		local held = self:GetAttribute('state-modifier') or self:GetAttribute('state') or ''
+		self:SetAttribute('state', held)
+		control:ChildUpdate('state', held)
+		control:CallMethod('RefreshModifierCooldowns')
 	]],
 	['UpdateActionBar'] = [[
-		if GetBonusBarOffset() > 0 then
+		-- Keep ConsolePortBar's secure page in parity with ConsolePort's main
+		-- pager. 3.3.5 vehicle/override/temp-shapeshift bars can otherwise leave
+		-- the children on a stale page after the temporary bar disappears.
+		if HasVehicleActionBar and HasVehicleActionBar() then
+			newstate = GetVehicleBarIndex()
+		elseif HasOverrideActionBar and HasOverrideActionBar() then
+			if GetOverrideBarIndex then newstate = GetOverrideBarIndex() end
+		elseif HasTempShapeshiftActionBar and HasTempShapeshiftActionBar() then
+			newstate = GetTempShapeshiftBarIndex()
+		elseif GetBonusBarOffset() > 0 then
 			newstate = GetBonusBarOffset()+6
 		else
 			newstate = GetActionBarPage()
 		end
+		if not newstate then newstate = GetActionBarPage() end
 		self:SetAttribute('actionpage', newstate)
 		control:ChildUpdate('actionpage', newstate)
 	]],

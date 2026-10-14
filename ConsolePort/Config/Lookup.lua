@@ -486,6 +486,9 @@ function ConsolePort:GetDefaultAddonSettings(setting)
         ['disableSmartMouse'] = false,
         ['preventMouseDrift'] = false,
         ['turnCharacter'] = false,
+        ['disableKeyboard'] = true,
+        ['enablePixelBridge'] = true,
+        ['enableNameplates'] = true,
         -------------------------------
         ['mouseOnMove'] = false,
         ['mouseOnJump'] = false,
@@ -773,11 +776,11 @@ local cvars = { -- value = default
     disableCvarReset        = {false    ; 'Disable console variable reset on exit/logout'};
     disableHints            = {false    ; 'Disable hint display on how certain things work'};
     disableSmartBind        = {false    ; 'Disable action/bag placement helper'};
-    enablePixelBridge       = {false    ; 'Enable Pixel Bridge (experimental)'};
-    enableNameplates        = {false    ; 'Enable Nameplates (requires reload)'};
+    enablePixelBridge       = {true     ; 'Enable Pixel Bridge (experimental)'};
+    enableNameplates        = {true     ; 'Enable Nameplates (requires reload)'};
     disableSmartMouse       = {false    ; 'Disable smart cursor show/hide'};
     disableStickMouse       = {false    ; 'Disable override bindings for stick buttons'};
-    doubleModTap            = {true     ; 'Toggle mouselook by double tapping a modifier'};
+    doubleModTap            = {false    ; 'Toggle mouselook by double tapping a modifier'};
     doubleModTapWindow      = {.25      ; 'How fast a modifier has to be tapped (seconds)'};
     enableCenterPanels      = {false    ; 'Put large panels in the center of the screen'};
     lookAround              = {false    ; 'Look around on L3 while in mouselook'};
@@ -806,6 +809,7 @@ local cvars = { -- value = default
     interactHintNoLine      = {false    ; 'Disable interact frame line texture'};
     interactHintNoSticky    = {false    ; 'Disable nameplate anchoring'};
     interactWith            = {false    ; 'Standard interact button ID'};
+    disableKeyboard         = {true     ; 'Disable ConsolePort on-screen keyboard by default'};
     interactCxpWith         = {false    ; 'ConsoleXP interact button ID'};
     --------------------------------------------------------------------------------------------------------
     -- Nameplate scraping properties

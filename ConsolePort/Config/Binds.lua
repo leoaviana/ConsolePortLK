@@ -436,55 +436,121 @@ end
 ---------------------------------------------------------------
 -- Binds: Create and handle addon bindings
 ---------------------------------------------------------------
-local function SetTempBinding(self, modifier, original, override)
+-- Applying overrides fires UPDATE_BINDINGS, which queues another
+-- LoadBindingSet, whose OnNewBindings callbacks apply overrides of their
+-- own, firing UPDATE_BINDINGS again. To break that cycle, the overrides
+-- are collected into a plan first and only flushed to the handler when
+-- they differ from what is already applied. A redundant reload then
+-- writes nothing, emits no events and skips the callback chain.
+local appliedOverrides = {}
+local function PlanTempBinding(plan, modifier, original, override)
 	if original and override then
 		local key1, key2 = GetBindingKey(original) or config.mouseBindings[original]
-		if key1 then SetOverrideBinding(self, false, modifier..key1, override) end
-		if key2 then SetOverrideBinding(self, false, modifier..key2, override) end
+		if key1 then plan[modifier..key1] = override end
+		if key2 then plan[modifier..key2] = override end
 	end
 end
-
-local function SetMouseBindings(self, handler, bindingSet)
+local function PlanMouseBindings(plan, bindingSet)
 	for stick, button in pairs(config.mouseBindings) do
-		if bindingSet[stick] and bindingSet[stick][""] then
+		local stickBindings = bindingSet[stick]
+		-- L3/R3 are mouse clicks by default when the controller profile leaves
+		-- their base action empty. Bind the calibrated physical stick key to the
+		-- mouse button explicitly; relying on the logical CP_T_* binding alone can
+		-- leave R3 unable to right-click/loot after a clean calibration.
+		if stickBindings and not stickBindings[""] then
+			local physical = GetBindingKey(stick)
+			if not physical then
+				local calibration = db('calibration')
+				physical = calibration and calibration[stick]
+			end
+			if physical then plan[physical] = button end
+		end
+		if stickBindings and stickBindings[""] then
 			for modifier in ConsolePort:GetModifiers() do
 				if modifier ~= "" then
-					SetOverrideBinding(handler, false, modifier..button, config.mouseDefault[button])
+					plan[modifier..button] = config.mouseDefault[button]
 				end
 			end
 		end
 	end
 end
+local function PlansMatch(a, b)
+	for key, override in pairs(a) do
+		if b[key] ~= override then return false end
+	end
+	for key, override in pairs(b) do
+		if a[key] ~= override then return false end
+	end
+	return true
+end
 
 function ConsolePort:LoadBindingSet(newBindingSet, fireCallback)
 	if(InCombatLockdown()) then return end
-	
 	local calibration = db('calibration')
 	if calibration then
 		for binding, key in pairs(calibration) do
-			SetBinding(key, binding)
+			-- SetBinding fires UPDATE_BINDINGS, so only write on mismatch.
+			-- Reading the live binding keeps this self-healing if the key
+			-- is reassigned elsewhere.
+			if GetBindingAction(key) ~= binding then
+				SetBinding(key, binding)
+			end
 		end
 	end
 	local bindingSet = newBindingSet or db.Bindings or {}
 	local handler = ConsolePortButtonHandler
-	ClearOverrideBindings(handler)
+	local plan = {}
 	if not db('disableStickMouse') then
-		SetMouseBindings(self, handler, bindingSet)
+		PlanMouseBindings(plan, bindingSet)
 	end
 	for name, key in pairs(bindingSet) do
 		local baseBinding = (not name:match('CP_T_.3')) and key['']
 		for modifier in self:GetModifiers() do
 			local modBinding = key[modifier]
-			SetTempBinding(handler, modifier, name, modBinding or baseBinding)
+			PlanTempBinding(plan, modifier, name, modBinding or baseBinding)
 		end
 	end
+
+	self:RemoveUpdateSnippet(self.LoadBindingSet)
+
+	if PlansMatch(plan, appliedOverrides) then
+		return bindingSet
+	end
+	ClearOverrideBindings(handler)
+	for key, override in pairs(plan) do
+		SetOverrideBinding(handler, false, key, override)
+	end
+	-- Store before dispatching, so any reload triggered from within the
+	-- callback chain sees the plan as already applied and bails out.
+	appliedOverrides = plan
+
 	if fireCallback then
 		self:OnNewBindings(bindingSet)
 	end
-	self:RemoveUpdateSnippet(self.LoadBindingSet)
 	return bindingSet
 end
-
+-- Forget which overrides are applied, so the next reload writes the full
+-- set again. Cheap insurance against the cache going stale: if anything
+-- ever wipes the handler's overrides behind our back, a stale cache would
+-- suppress the rebuild and leave the controller unbound.
+function ConsolePort:InvalidateBindingCache()
+	appliedOverrides = {}
+end
+do -- Entering the world is the one point where override state is uncertain.
+	-- Rebuild right away rather than waiting for the next binding event to
+	-- discover the empty cache, so the cost lands on the loading screen
+	-- instead of ambushing whatever happens first after it.
+	local guard = CreateFrame('Frame')
+	guard:RegisterEvent('PLAYER_ENTERING_WORLD')
+	guard:SetScript('OnEvent', function()
+		ConsolePort:InvalidateBindingCache()
+		if db.Bindings then
+			-- Queued rather than called directly, so it retries harmlessly
+			-- if the zone-in lands in combat, when binding writes are blocked.
+			ConsolePort:AddUpdateSnippet(ConsolePort.LoadBindingSet, db.Bindings, true)
+		end
+	end)
+end
 function ConsolePort:OnNewBindings(bindings) return db.Bindings end
 
 function ConsolePort:LoadInterfaceBinding(button, UIbutton)
@@ -501,7 +567,6 @@ function ConsolePort:LoadInterfaceBinding(button, UIbutton)
 		self:AddWidgetTracker(button, UIbutton)
 	end
 end
-
 ---------------------------------------------------------------
 -- Binds: Import profile functions 
 ---------------------------------------------------------------
@@ -822,7 +887,10 @@ function WindowMixin:OnShow(override)
 		self.Rebind.HeaderScroll:Hide()
 		self.Rebind.ShortcutScroll:Hide()
 		self.Controller:Show()
-		if not db('disableUI') then
+		-- v148: only let Bindings claim controller focus when it is the category
+		-- actually displayed. Hidden/show lifecycle work during Settings opening
+		-- must not steal focus back to the stale BindCatcher.
+		if not db('disableUI') and ConsolePortOldConfig:GetCategory() == self then
 			ConsolePort:SetCurrentNode(self.BindCatcher)
 		end
 		FadeIn(self.Overlay, 1, 0, 1)

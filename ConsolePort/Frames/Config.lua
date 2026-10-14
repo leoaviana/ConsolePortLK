@@ -15,6 +15,13 @@ local Container = CreateFrame("Frame", "$parentContainer", Config)
 ---------------------------------------------------------------
 ConsolePort.configFrame = Config
 Config.Container = Container
+
+-- v105 navigation memory is intentionally Lua-session only. It resets on
+-- login and /reload because this local is recreated with the UI. Setup may
+-- explicitly open Bindings without consuming the first ordinary Settings open.
+local CPConfigOpenedThisSession = false
+local CPRestoringConfigCategory = false
+local CPLastConfigCategoryThisSession = nil
 ---------------------------------------------------------------
 Config.Obstructor = CreateFrame("Frame", nil, Config)
 Config.Obstructor:SetAllPoints()
@@ -217,6 +224,14 @@ end
 -- Tab buttons
 local BindingsBtn = MakeHeaderTab(Header, "Bindings", LogoBtn, 10)
 local SettingsBtn = MakeHeaderTab(Header, "Settings", BindingsBtn, 0)
+
+-- v82: controller shoulder proxies. Raw OnKeyDown never sees LB/RB while the
+-- config window owns override bindings, so route shoulders through secure click
+-- bindings just like the existing Save shortcut.
+local BindingsShoulder = CreateFrame("Button", "ConsolePortConfigBindingsShoulder", Config)
+local SettingsShoulder = CreateFrame("Button", "ConsolePortConfigSettingsShoulder", Config)
+BindingsShoulder:SetScript("OnClick", function() BindingsBtn:Click() end)
+SettingsShoulder:SetScript("OnClick", function() SettingsBtn:Click() end)
 
 -- Vertical separator between logo area and tabs
 do
@@ -426,6 +441,7 @@ end
 -- SIDEBAR ENTRY SYSTEM
 -- ============================================================
 local sideEntries  = {}
+local sideEntryByName = {}
 local sideYOffset  = 8
 
 local function SideUpdateHeight()
@@ -583,6 +599,7 @@ local function AddSideEntry(panelName, labelText, groupEntry)
 		label   = label,
 	}
 	table.insert(sideEntries, entry)
+	sideEntryByName[panelName] = entry
 
 	if groupEntry then
 		table.insert(groupEntry.children, entry)
@@ -612,7 +629,8 @@ function Category:AddNew(header, bannerAtlas, name)
 	local target = name or header
 
 	if not FULLWIDTH[target] then
-		AddSideEntry(target, header)
+		-- v107: the parent Settings page is the General section in the sidebar.
+		AddSideEntry(target, target == 'Controls' and 'General' or header)
 	end
 
 	-- Stub so Container:HideAll / ShowFrame can call
@@ -668,6 +686,13 @@ function Container:ShowFrame(id)
 	self:HideAll()
 	self.Current:Show()
 	self.id = index
+	-- Remember real user navigation, including Settings child pages such as
+	-- Action Bars. Internal restore/open bootstrap calls set CPRestoring... first.
+	if Config:IsShown() and not CPRestoringConfigCategory
+	and frame.IDtag ~= 'Binds' and frame.IDtag ~= 'About' then
+		ConsolePortUIConfig = ConsolePortUIConfig or {}
+		CPLastConfigCategoryThisSession = frame.IDtag
+	end
 	if Category.Buttons[self.id] then
 		Category.Buttons[self.id].hasPriority = true
 		Category.Buttons[self.id].SelectedTexture:Show()
@@ -895,11 +920,50 @@ Popup:HookScript("OnDragStop",  Popup.StopMovingOrSizing)
 function Config:GetCategoryID() return Container.id end
 function Config:GetCategory()   return Container.Frames[Container.id] end
 
+local function SyncHeaderTabForCategory(id)
+	if id == "Binds" then SetActiveTab(BindingsBtn)
+	elseif id == "About" then SetActiveTab(nil)
+	else SetActiveTab(SettingsBtn) end
+end
+
 function Config:OpenCategory(id)
+	ConsolePortUIConfig = ConsolePortUIConfig or {}
+	local requested = id
+	local wasShown = self:IsShown()
+
+	-- The game-menu shortcut historically asks for Controls every time. After
+	-- the first ordinary open in this Lua session, reinterpret that bootstrap
+	-- request as "reopen where I left off". Explicit Binds requests (notably
+	-- setup completion) remain explicit and win.
+	if not wasShown and requested == "Controls" and CPConfigOpenedThisSession then
+		id = CPLastConfigCategoryThisSession or requested
+	end
+
+	CPRestoringConfigCategory = not wasShown
 	local frame, index = Container:ShowFrame(id)
+	CPRestoringConfigCategory = false
 	if frame then
 		if not InCombatLockdown() then
 			self:Show()
+			SyncHeaderTabForCategory(frame.IDtag)
+			-- v146: restore the proven v107 cursor method: after the frame is shown,
+			-- directly select the sidebar node matching the displayed section.
+			-- No ClearCurrentNode, no deferred timer, no pre-show cursor manipulation.
+			if not wasShown and frame.IDtag ~= 'Binds' and frame.IDtag ~= 'About' and ConsolePort.SetCurrentNode then
+				local activeEntry = sideEntryByName[frame.IDtag]
+				-- v149: first visible Settings entry must not inherit the BindCatcher
+				-- node left by setup/bootstrap. Clear only at this entry boundary.
+				if ConsolePort.ClearCurrentNode then ConsolePort:ClearCurrentNode(true) end
+				ConsolePort:SetCurrentNode((activeEntry and activeEntry.btn) or SettingsBtn)
+			end
+			-- Setup's forced Bindings launch is not an ordinary user opening. The
+			-- next normal Controls request must still default to Settings.
+			if not CPSetupOpeningBindings then
+				CPConfigOpenedThisSession = true
+				if frame.IDtag ~= 'Binds' and frame.IDtag ~= 'About' then
+					CPLastConfigCategoryThisSession = frame.IDtag
+				end
+			end
 			return frame
 		else
 			self:RegisterEvent("PLAYER_REGEN_ENABLED")
@@ -976,6 +1040,11 @@ local function SetSaveShortCut(self)
 		else
 			Save.Icon:SetTexture()
 		end
+
+		local lb = GetBindingKey("CP_T1")
+		local rb = GetBindingKey("CP_T2")
+		if lb then SetOverrideBindingClick(self, true, lb, BindingsShoulder:GetName()) end
+		if rb then SetOverrideBindingClick(self, true, rb, SettingsShoulder:GetName()) end
 	else
 		Save.Icon:SetTexture()
 	end
@@ -1018,21 +1087,7 @@ end
 
 function WindowMixin:OnKeyUp(key) end
 
-function WindowMixin:OnKeyDown(key)
-	local t1 = GetBindingKey("CP_T1")
-	local t2 = GetBindingKey("CP_T2")
-	if key == t1 or key == t2 then
-		local containerID   = self.Container.id
-		local numCategories = #Category.Buttons
-		if containerID then
-			if key == t1 and containerID - 1 > 0 then
-				self:OpenCategory(containerID - 1)
-			elseif key == t2 and containerID + 1 <= numCategories then
-				self:OpenCategory(containerID + 1)
-			end
-		end
-	end
-end
+function WindowMixin:OnKeyDown(key) end
 
 function WindowMixin:Export(characterExportData, exportAs)
 	if characterExportData then
@@ -1100,8 +1155,16 @@ function ConsolePort:CreateConfigPanel()
 	end)
 
 	SettingsBtn:SetScript("OnClick", function()
-		Config:OpenCategory("Controls")
+		-- v151: mirror the confirmed-good reopen behavior. Resolve the same
+		-- remembered Settings subsection, show it, then focus its sidebar heading.
+		local target = CPLastConfigCategoryThisSession or "Controls"
+		Config:OpenCategory(target)
 		SetActiveTab(SettingsBtn)
+		local entry = sideEntryByName[target]
+		if entry and ConsolePort.SetCurrentNode then
+			ConsolePort:ClearCurrentNode(true)
+			ConsolePort:SetCurrentNode(entry.btn)
+		end
 	end)
 
 	BindingsBtn:SetScript("OnClick", function()
@@ -1109,7 +1172,14 @@ function ConsolePort:CreateConfigPanel()
 		SetActiveTab(BindingsBtn)
 	end)
 
-	-- Open Bindings by default (full-width, no sidebar)
-	Container:ShowFrame("Binds")
-	SetActiveTab(BindingsBtn)
+	-- v105: every fresh Lua/UI session bootstraps Settings. No category is
+	-- restored from SavedVariables across login or /reload. Setup can still
+	-- explicitly request Bindings afterward without consuming the ordinary open.
+	CPRestoringConfigCategory = true
+	Container:ShowFrame("Controls")
+	CPRestoringConfigCategory = false
+	local current = Container.Current and Container.Current.IDtag
+	if current == "Binds" then SetActiveTab(BindingsBtn)
+	elseif current == "About" then SetActiveTab(nil)
+	else SetActiveTab(SettingsBtn) end
 end

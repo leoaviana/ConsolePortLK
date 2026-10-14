@@ -100,41 +100,54 @@ function Node:GetSuperNode(super, node)
 end
 
 function Node:GetScrollButtons(node)
-	if node then
-		if node:IsMouseWheelEnabled() then
-			for _, frame in pairs({node:GetChildren()}) do
-				if frame:IsObjectType("Slider") then
-					return frame:GetChildren()
-				end
-			end
-		elseif node:IsObjectType("Slider") then
-			return node:GetChildren()
-		else
-			return self:GetScrollButtons(node:GetParent())
-		end
-	end
+    local visited = {}
+    while node and not visited[node] do
+        visited[node] = true
+        if node:IsMouseWheelEnabled() then
+            for _, frame in pairs({node:GetChildren()}) do
+                if frame:IsObjectType("Slider") then return frame:GetChildren() end
+            end
+            return
+        elseif node:IsObjectType("Slider") then
+            return node:GetChildren()
+        else
+            node = node:GetParent()
+        end
+    end
 end
 
 ---------------------------------------------------------------
--- Recursive scanner
+-- Iterative scanner: preserve depth-first sibling order and scroll ancestry
+-- without retaining expanding sibling varargs on a recursive Lua call stack.
 ---------------------------------------------------------------
-function Node:Scan(super, node, sibling, ...)
-	if self:IsRelevant(node) then
-		local object, level = node:GetObjectType(), self:GetFrameLevel(node)
-		if self:IsDrawn(node, super) then
-			if self:IsInteractive(node, object) then
-				self:CacheItem(node, object, super, level)
-			elseif node:IsMouseEnabled() then
-				self:CacheRect(node, level)
-			end
-		end
-		if self:IsTree(node) then
-			self:Scan(self:GetSuperNode(super, node), node:GetChildren())
-		end
-	end
-	if sibling then
-		self:Scan(super, sibling, ...)
-	end
+function Node:Scan(super, ...)
+    local roots, pending, visited = {...}, {}, {}
+    for i = #roots, 1, -1 do pending[#pending + 1] = {node=roots[i], super=super} end
+    while #pending > 0 do
+        local current = pending[#pending]
+        pending[#pending] = nil
+        local node, ancestor = current.node, current.super
+        if node and not visited[node] then
+            visited[node] = true
+            if self:IsRelevant(node) then
+                local object, level = node:GetObjectType(), self:GetFrameLevel(node)
+                if self:IsDrawn(node, ancestor) then
+                    if self:IsInteractive(node, object) then
+                        self:CacheItem(node, object, ancestor, level)
+                    elseif node:IsMouseEnabled() then
+                        self:CacheRect(node, level)
+                    end
+                end
+                if self:IsTree(node) then
+                    local childSuper = self:GetSuperNode(ancestor, node)
+                    local children = {node:GetChildren()}
+                    for i = #children, 1, -1 do
+                        pending[#pending + 1] = {node=children[i], super=childSuper}
+                    end
+                end
+            end
+        end
+    end
 end
 
 function Node:ScrubCache(i, item)
@@ -153,7 +166,7 @@ function Node:ScrubCache(i, item)
 	end
 end
 
--- @param  varargs : list of frames to scan recursively
+-- @param  varargs : list of frame hierarchies to scan
 -- @return cache   : table of nodes on screen
 function Node:RunScan(...)
 	self:Scan(nil, ...)
@@ -266,15 +279,18 @@ end
 
 function Node:GetCandidatesForVector(vector, comparator, candidates)
 	local thisX, thisY = vector.x, vector.y
+	if not thisX or not thisY then return candidates end
 	for i, destination in self:IterateCache() do
 		local candidate = destination.node
 		local destX, destY = candidate:GetCenter()
-		local distX, distY = self:GetDistance(thisX, thisY, destX, destY)
+		if destX and destY then
+			local distX, distY = self:GetDistance(thisX, thisY, destX, destY)
 
-		if comparator(destX, destY, distX, distY, thisX, thisY) then
-			candidates[destination] = { 
-				x = destX; y = destY; h = distX; v = distY;
-			}
+			if comparator(destX, destY, distX, distY, thisX, thisY) then
+				candidates[destination] = {
+					x = destX; y = destY; h = distX; v = distY;
+				}
+			end
 		end
 	end 
 	return candidates
@@ -347,16 +363,19 @@ end
 function Node:GetPriorityCandidate(x, y)
 	local targNode, targDist, targPrio
 	for _, this in self:IterateCache() do
-		local thisDist = self:GetDistanceSum(x, y, this.node:GetCenter())
-		local thisPrio = this.node.hasPriority
+		local nx, ny = this.node:GetCenter()
+		if nx and ny then
+			local thisDist = self:GetDistanceSum(x, y, nx, ny)
+			local thisPrio = this.node.hasPriority
 
-		if thisPrio and not targPrio then
-			targNode = this
-			break
-		elseif not targNode or ( not targPrio and thisDist < targDist ) then
-			targNode = this
-			targDist = thisDist
-			targPrio = thisPrio
+			if thisPrio and not targPrio then
+				targNode = this
+				break
+			elseif not targNode or ( not targPrio and thisDist < targDist ) then
+				targNode = this
+				targDist = thisDist
+				targPrio = thisPrio
+			end
 		end
 	end
 	return targNode
