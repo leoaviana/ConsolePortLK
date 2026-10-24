@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.4 — 2026-10-23
+
+- Fix the controller menu's Leave Group action failing in dungeon-finder groups on 3.3.5 clients without ConfirmOrLeaveLFGParty. Use the supported LeaveParty action when the helper is unavailable, while retaining native confirmation on clients that provide it.
+- Confirmed working in game by the maintainer. Existing saved settings remain compatible.
+
 ## 1.0.3 — 2026-10-11
 
 - Fix modifier satellites retaining humanoid abilities after a druid form change or login in animal form. Hover icons, tooltips, and cooldowns now resolve from the shared action-bar page used by the main bar.

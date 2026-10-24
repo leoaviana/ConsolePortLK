@@ -1,5 +1,5 @@
 ## Interface: 30300
-## Version: 1.0.3
+## Version: 1.0.4
 ## Title: Console Port |cff739BD0LK|r |cff69ccf0Action Bar|r
 ## Notes: Action bar extension for Console Port
 ## SavedVariables: ConsolePortBarManifest

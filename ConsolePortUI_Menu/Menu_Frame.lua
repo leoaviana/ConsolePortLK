@@ -515,7 +515,9 @@ local Menu =  UI:CreateFrame('Frame', an, IsCustomClient and EscapeMenu or GameM
 							self:SetText(IsPartyLFG() and INSTANCE_PARTY_LEAVE or PARTY_LEAVE)
 						end,
 						OnClick = function(self)
-							if IsPartyLFG() or IsInLFGDungeon() then
+							-- 3.3.5 uses LeaveParty for dungeon-finder groups too;
+							-- retain the confirmation helper only on clients that provide it.
+							if (IsPartyLFG() or IsInLFGDungeon()) and type(ConfirmOrLeaveLFGParty) == 'function' then
 								ConfirmOrLeaveLFGParty()
 							else
 								LeaveParty()
